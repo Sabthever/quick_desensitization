@@ -345,8 +345,10 @@ class ProjectEditDialog(QDialog):
         self.path_label.setStyleSheet("QLabel { color: #666; }")
         self.path_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         open_path_btn = QPushButton("打开文件夹")
+        open_path_btn.setFixedSize(open_path_btn.sizeHint().width() + 20, open_path_btn.sizeHint().height())
         open_path_btn.clicked.connect(lambda: self.open_in_explorer(self.project.get("projectPath", "")))
         change_path_btn = QPushButton("更改路径")
+        change_path_btn.setFixedSize(change_path_btn.sizeHint().width() + 20, change_path_btn.sizeHint().height())
         change_path_btn.clicked.connect(lambda: self.change_project_path())
         path_layout.addWidget(self.path_label)
         path_layout.addWidget(open_path_btn)
@@ -359,8 +361,10 @@ class ProjectEditDialog(QDialog):
         self.secret_label.setStyleSheet("QLabel { color: #666; }")
         self.secret_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         open_secret_btn = QPushButton("打开文件夹")
+        open_secret_btn.setFixedSize(open_secret_btn.sizeHint().width() + 20, open_secret_btn.sizeHint().height())
         open_secret_btn.clicked.connect(lambda: self.open_in_explorer(self.project.get("secretPath", "")))
         change_secret_btn = QPushButton("更改路径")
+        change_secret_btn.setFixedSize(change_secret_btn.sizeHint().width() + 20, change_secret_btn.sizeHint().height())
         change_secret_btn.clicked.connect(lambda: self.change_secret_path())
         secret_layout.addWidget(self.secret_label)
         secret_layout.addWidget(open_secret_btn)
@@ -385,17 +389,25 @@ class ProjectEditDialog(QDialog):
 
         self.rule_table = QTableWidget()
         self.rule_table.setColumnCount(6)
-        self.rule_table.setHorizontalHeaderLabels(["选择", "序号", "文件类型", "文件匹配", "字段路径", "状态"])
+        self.rule_table.setHorizontalHeaderLabels(["选择？", "序号", "文件类型", "文件匹配", "字段路径", "状态"])
         self.rule_table.verticalHeader().setVisible(False)
         self.rule_table.setShowGrid(False)
         self.rule_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.rule_table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.rule_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.rule_table.setFocusPolicy(Qt.NoFocus)
-        self.rule_table.setColumnWidth(0, 40)
-        self.rule_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.rule_table.setColumnWidth(0, 60)
+        self.rule_table.setColumnWidth(1, 50)
+        self.rule_table.setColumnWidth(5, 60)
+        self.rule_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Fixed)
+        self.rule_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Fixed)
+        self.rule_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Interactive)
+        self.rule_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Interactive)
         self.rule_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.Stretch)
+        self.rule_table.horizontalHeader().setSectionResizeMode(5, QHeaderView.Fixed)
+        self.rule_table.horizontalHeader().setToolTip("<b>多选操作：</b><br>Ctrl + 点击：选择多条不连续的规则<br>Shift + 点击：选择范围内多条规则<br>Ctrl + A：全选")
         self.rule_table.setStyleSheet("")
-        self.rule_table.itemClicked.connect(self.on_rule_row_clicked)
+        self.rule_table.itemSelectionChanged.connect(self.on_selection_changed)
         rule_layout.addWidget(self.rule_table)
 
         btn_widget = QWidget()
@@ -475,46 +487,69 @@ class ProjectEditDialog(QDialog):
 
     def load_rules(self):
         self.rules = self.storage.load_secret_config(self.project.get("secretPath", ""))
-        self.selected_rule_index = None
+        self.selected_rule_indices = []
         self.update_rule_table()
+        self.update_button_states()
 
-    def on_rule_row_clicked(self, item):
-        row = item.row()
-        self.selected_rule_index = row
-        self.update_rule_table()
+    def on_selection_changed(self):
+        if not hasattr(self, 'selected_rule_indices'):
+            return
+        try:
+            selection_model = self.rule_table.selectionModel()
+            if selection_model is None:
+                return
+            selected_rows = selection_model.selectedRows()
+            self.selected_rule_indices = [row.row() for row in selected_rows if row.row() < len(self.rules)]
+            self.update_rule_table()
+            self.update_button_states()
+        except Exception:
+            pass
 
     def update_rule_table(self):
-        self.rule_table.setRowCount(len(self.rules))
-        for i, rule in enumerate(self.rules):
-            is_selected = (i == self.selected_rule_index)
-            
-            select_item = QTableWidgetItem("✓" if is_selected else "")
-            select_item.setTextAlignment(Qt.AlignCenter)
-            select_item.setFlags(select_item.flags() & ~Qt.ItemIsEditable)
-            self.rule_table.setItem(i, 0, select_item)
-            
-            seq_item = QTableWidgetItem(str(i + 1))
-            seq_item.setTextAlignment(Qt.AlignCenter)
-            seq_item.setFlags(seq_item.flags() & ~Qt.ItemIsEditable)
-            self.rule_table.setItem(i, 1, seq_item)
-            
-            type_item = QTableWidgetItem(rule.get("fileType", ""))
-            type_item.setFlags(type_item.flags() & ~Qt.ItemIsEditable)
-            self.rule_table.setItem(i, 2, type_item)
-            
-            match_item = QTableWidgetItem(rule.get("fileMatch", ""))
-            match_item.setFlags(match_item.flags() & ~Qt.ItemIsEditable)
-            self.rule_table.setItem(i, 3, match_item)
-            
-            field_item = QTableWidgetItem(rule.get("fieldPath", ""))
-            field_item.setFlags(field_item.flags() & ~Qt.ItemIsEditable)
-            self.rule_table.setItem(i, 4, field_item)
-            
-            status = rule.get("enabled", True)
-            status_item = QTableWidgetItem("启用" if status else "禁用")
-            status_item.setTextAlignment(Qt.AlignCenter)
-            status_item.setFlags(status_item.flags() & ~Qt.ItemIsEditable)
-            self.rule_table.setItem(i, 5, status_item)
+        if not hasattr(self, 'selected_rule_indices'):
+            self.selected_rule_indices = []
+        self.rule_table.itemSelectionChanged.disconnect()
+        try:
+            current_selection = self.selected_rule_indices
+            self.rule_table.setRowCount(len(self.rules))
+            for i, rule in enumerate(self.rules):
+                is_selected = (i in current_selection)
+
+                select_item = QTableWidgetItem("✓" if is_selected else "")
+                select_item.setTextAlignment(Qt.AlignCenter)
+                select_item.setFlags(select_item.flags() & ~Qt.ItemIsEditable)
+                self.rule_table.setItem(i, 0, select_item)
+
+                seq_item = QTableWidgetItem(str(i + 1))
+                seq_item.setTextAlignment(Qt.AlignCenter)
+                seq_item.setFlags(seq_item.flags() & ~Qt.ItemIsEditable)
+                self.rule_table.setItem(i, 1, seq_item)
+
+                type_item = QTableWidgetItem(rule.get("fileType", ""))
+                type_item.setFlags(type_item.flags() & ~Qt.ItemIsEditable)
+                self.rule_table.setItem(i, 2, type_item)
+
+                match_item = QTableWidgetItem(rule.get("fileMatch", ""))
+                match_item.setFlags(match_item.flags() & ~Qt.ItemIsEditable)
+                self.rule_table.setItem(i, 3, match_item)
+
+                field_item = QTableWidgetItem(rule.get("fieldPath", ""))
+                field_item.setFlags(field_item.flags() & ~Qt.ItemIsEditable)
+                self.rule_table.setItem(i, 4, field_item)
+
+                status = rule.get("enabled", True)
+                status_item = QTableWidgetItem("启用" if status else "禁用")
+                status_item.setTextAlignment(Qt.AlignCenter)
+                status_item.setFlags(status_item.flags() & ~Qt.ItemIsEditable)
+                self.rule_table.setItem(i, 5, status_item)
+        finally:
+            self.rule_table.itemSelectionChanged.connect(self.on_selection_changed)
+
+    def update_button_states(self):
+        selection_count = len(self.selected_rule_indices)
+        self.edit_rule_btn.setEnabled(selection_count == 1)
+        self.delete_rule_btn.setEnabled(selection_count >= 1)
+        self.toggle_rule_btn.setEnabled(selection_count >= 1)
 
     def add_rule(self):
         dialog = RuleDialog(self)
@@ -528,34 +563,48 @@ class ProjectEditDialog(QDialog):
             self.update_rule_table()
 
     def edit_selected_rule(self):
-        current_row = self.rule_table.currentRow()
-        if current_row < 0:
-            QMessageBox.warning(self, "提示", "请先选择要编辑的规则")
+        if len(self.selected_rule_indices) != 1:
+            QMessageBox.warning(self, "提示", "请选择一条规则进行编辑")
             return
 
-        rule = self.rules[current_row]
+        index = self.selected_rule_indices[0]
+        rule = self.rules[index]
         dialog = RuleDialog(self, rule)
         if dialog.exec() == QDialog.Accepted:
             new_rule = dialog.get_rule()
-            self.rules[current_row] = new_rule
+            self.rules[index] = new_rule
             self.update_rule_table()
 
     def delete_selected_rule(self):
-        current_row = self.rule_table.currentRow()
-        if current_row < 0:
+        if not self.selected_rule_indices:
             QMessageBox.warning(self, "提示", "请先选择要删除的规则")
             return
 
-        self.rules.pop(current_row)
-        self.update_rule_table()
+        reply = QMessageBox.question(
+            self, "确认删除",
+            f"确定要删除选中的 {len(self.selected_rule_indices)} 条规则吗？",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        self.rule_table.itemSelectionChanged.disconnect()
+        try:
+            for index in sorted(self.selected_rule_indices, reverse=True):
+                self.rules.pop(index)
+            self.selected_rule_indices = []
+            self.update_rule_table()
+            self.update_button_states()
+        finally:
+            self.rule_table.itemSelectionChanged.connect(self.on_selection_changed)
 
     def toggle_selected_rule(self):
-        current_row = self.rule_table.currentRow()
-        if current_row < 0:
+        if not self.selected_rule_indices:
             QMessageBox.warning(self, "提示", "请先选择要切换状态的规则")
             return
 
-        self.rules[current_row]["enabled"] = not self.rules[current_row].get("enabled", True)
+        for index in self.selected_rule_indices:
+            self.rules[index]["enabled"] = not self.rules[index].get("enabled", True)
         self.update_rule_table()
 
     def open_config_file(self):
@@ -565,12 +614,19 @@ class ProjectEditDialog(QDialog):
         subprocess.run(["notepad", str(config_file)])
 
     def save(self):
+        reply = QMessageBox.question(
+            self, "确认保存",
+            "确定要保存规则吗？",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return
+
         self.storage.save_secret_config(self.project.get("secretPath", ""), self.rules)
         alias = self.alias_input.text().strip()
         if alias != self.project.get("alias"):
             self.project["alias"] = alias
             self.storage.update_project(self.project["id"], {"alias": alias})
-        QMessageBox.information(self, "保存成功", "规则已保存")
         self.accept()
 
     def check_desensitized_status(self):
