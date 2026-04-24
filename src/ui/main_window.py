@@ -215,7 +215,7 @@ class RuleDialog(QDialog):
         form_layout.addRow("文件类型 *", type_layout)
 
         self.file_match_input = QLineEdit()
-        self.file_match_input.setPlaceholderText("例如: application*.yml")
+        self.file_match_input.setPlaceholderText("例如: application*.yml 或 application*.yml;bootstrap*.yml")
         form_layout.addRow("文件匹配 *", self.file_match_input)
 
         self.field_path_input = QLineEdit()
@@ -228,11 +228,21 @@ class RuleDialog(QDialog):
 
         layout.addLayout(form_layout)
 
-        self.hint_group = QGroupBox("字段路径格式说明")
+        self.hint_group = QGroupBox("格式说明")
         hint_layout = QVBoxLayout()
 
+        file_match_hint = QLabel(
+            "【文件匹配】\n"
+            "  • 支持通配符 * 匹配文件名\n"
+            "  • 可用分号 ; 分隔多个匹配模式（或关系）\n"
+            "  • 示例: application*.yml;bootstrap*.yml\n"
+            "  • 表示匹配 application*.yml 或 bootstrap*.yml"
+        )
+        file_match_hint.setWordWrap(True)
+        hint_layout.addWidget(file_match_hint)
+
         yml_hint = QLabel(
-            "【yml/yaml】\n"
+            "【yml/yaml 字段路径】\n"
             "  • 完整路径: spring.datasource.password\n"
             "  • 通配符 * : spring.datasource.*.password (精确深度匹配一级)\n"
             "  • 通配符 ** : spring.datasource.**.password (匹配任意层级)"
@@ -241,7 +251,7 @@ class RuleDialog(QDialog):
         hint_layout.addWidget(yml_hint)
 
         env_hint = QLabel(
-            "【env】\n"
+            "【env 字段路径】\n"
             "  • 直接写 KEY: DB_PASSWORD\n"
             "  • 前缀匹配: DB_* (匹配所有以 DB_ 开头)\n"
             "  • 后缀匹配: *_PASSWORD"
@@ -250,7 +260,7 @@ class RuleDialog(QDialog):
         hint_layout.addWidget(env_hint)
 
         json_hint = QLabel(
-            "【json (JSONPath)】\n"
+            "【json 字段路径 (JSONPath)】\n"
             "  • 完整路径: $.database.password\n"
             "  • 递归匹配: $..password (匹配任意位置的 password)\n"
             "  • 通配符: $.database.*.password"
@@ -1005,8 +1015,21 @@ class MainWindow(QWidget):
             file_type = rule["fileType"]
             if file_type not in matched_files:
                 matched_files[file_type] = []
+            
+            file_match = rule["fileMatch"]
+            file_patterns = [pattern.strip() for pattern in file_match.split(';')]
+            
             for file_path in Path(project_path).rglob("*"):
-                if file_path.is_file() and __import__('fnmatch').fnmatch(file_path.name, rule["fileMatch"]):
+                if not file_path.is_file():
+                    continue
+                
+                matched = False
+                for pattern in file_patterns:
+                    if pattern and __import__('fnmatch').fnmatch(file_path.name, pattern):
+                        matched = True
+                        break
+                
+                if matched:
                     matched_files[file_type].append(file_path)
 
         restored_count = 0

@@ -39,11 +39,21 @@ class DesensitizeEngine:
             if file_type not in matched_files:
                 matched_files[file_type] = {}
 
+            file_patterns = [pattern.strip() for pattern in file_match.split(';')]
+
             for file_path in Path(project_path).rglob("*"):
                 if not file_path.is_file():
                     continue
-                if not fnmatch.fnmatch(file_path.name, file_match):
+                
+                matched = False
+                for pattern in file_patterns:
+                    if pattern and fnmatch.fnmatch(file_path.name, pattern):
+                        matched = True
+                        break
+                
+                if not matched:
                     continue
+                    
                 rel_path = str(file_path.relative_to(project_path))
                 if rel_path not in matched_files[file_type]:
                     matched_files[file_type][rel_path] = []
