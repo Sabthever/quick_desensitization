@@ -28,6 +28,8 @@ As AI coding assistants become increasingly prevalent in software development, d
 - **One-click Restore**: Restore all original values with a single click
 - **GUI Interface**: User-friendly desktop application (Chinese interface)
 - **Ready-to-Run EXE**: Download and double-click to run, no setup needed
+- **Batch Operations**: Multi-select rules for batch delete, enable/disable
+- **Import/Export**: Import and export desensitization rules for reuse
 
 ## Installation
 
@@ -115,6 +117,18 @@ $.database.password                 # Exact path
 $..password                         # Recursive match (any location)
 $.database.*.password               # Wildcard match
 ```
+
+#### Batch Operations & Import/Export
+
+Multi-select operations are supported in the rule list:
+
+- **Ctrl + Click**: Select multiple non-contiguous rules
+- **Shift + Click**: Select a range of rules
+- **Ctrl + A**: Select all
+
+After selecting rules, you can batch delete, enable/disable rules.
+
+Click **导入规则** to import rules from a CSV file (duplicate rules will be skipped). Click **导出选中规则** to export selected rules to a CSV file.
 
 ### 3. Desensitize
 

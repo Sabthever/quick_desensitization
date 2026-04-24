@@ -984,8 +984,7 @@ class MainWindow(QWidget):
                         saved_entries.add((rel_path, change["fieldPath"]))
 
         if saved_entries:
-            msg = f"脱敏完成！\n\n记录了 {len(saved_entries)} 个敏感字段\n\n敏感数据已保存至:\n{secret_path}/secret.csv"
-            QMessageBox.information(self, "脱敏报告", msg)
+            QMessageBox.information(self, "脱敏成功", "脱敏完成！")
         else:
             QMessageBox.information(self, "提示", "没有需要脱敏的字段")
 
@@ -1036,7 +1035,7 @@ class MainWindow(QWidget):
                 restored_count += 1
 
         if restored_count > 0:
-            QMessageBox.information(self, "恢复报告", f"已恢复 {restored_count} 个文件\n\n请尽快使用，调试完成后请重新执行脱敏！")
+            QMessageBox.information(self, "恢复成功", "恢复完成！")
         else:
             QMessageBox.information(self, "提示", "配置文件未脱敏，无需恢复")
 
