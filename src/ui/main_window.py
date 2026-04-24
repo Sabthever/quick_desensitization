@@ -383,9 +383,20 @@ class ProjectEditDialog(QDialog):
         self.warning_label.hide()
         rule_layout.addWidget(self.warning_label)
 
+        rule_btn_widget = QWidget()
+        rule_btn_layout = QHBoxLayout()
+        rule_btn_layout.setContentsMargins(0, 0, 0, 0)
         self.add_rule_btn = QPushButton("+ 新增规则")
         self.add_rule_btn.clicked.connect(self.add_rule)
-        rule_layout.addWidget(self.add_rule_btn)
+        rule_btn_layout.addWidget(self.add_rule_btn)
+        self.import_rule_btn = QPushButton("导入规则")
+        self.import_rule_btn.clicked.connect(self.import_rules)
+        rule_btn_layout.addWidget(self.import_rule_btn)
+        self.export_rule_btn = QPushButton("导出选中规则")
+        self.export_rule_btn.clicked.connect(self.export_selected_rules)
+        rule_btn_layout.addWidget(self.export_rule_btn)
+        rule_btn_widget.setLayout(rule_btn_layout)
+        rule_layout.addWidget(rule_btn_widget)
 
         self.rule_table = QTableWidget()
         self.rule_table.setColumnCount(6)
@@ -546,16 +557,21 @@ class ProjectEditDialog(QDialog):
             self.rule_table.itemSelectionChanged.connect(self.on_selection_changed)
 
     def update_button_states(self):
+        selection_count = len(self.selected_rule_indices)
+
         if self.is_desensitized:
             self.add_rule_btn.setEnabled(False)
+            self.import_rule_btn.setEnabled(False)
+            self.export_rule_btn.setEnabled(False)
             self.open_config_btn.setEnabled(False)
             self.edit_rule_btn.setEnabled(False)
             self.delete_rule_btn.setEnabled(False)
             self.toggle_rule_btn.setEnabled(False)
             return
 
-        selection_count = len(self.selected_rule_indices)
         self.add_rule_btn.setEnabled(True)
+        self.import_rule_btn.setEnabled(True)
+        self.export_rule_btn.setEnabled(selection_count >= 1)
         self.open_config_btn.setEnabled(True)
         self.edit_rule_btn.setEnabled(selection_count == 1)
         self.delete_rule_btn.setEnabled(selection_count >= 1)
@@ -571,6 +587,87 @@ class ProjectEditDialog(QDialog):
                     return
             self.rules.append(rule)
             self.update_rule_table()
+
+    def export_selected_rules(self):
+        if not self.selected_rule_indices:
+            QMessageBox.warning(self, "提示", "请先选择要导出的规则")
+            return
+
+        count = len(self.selected_rule_indices)
+        reply = QMessageBox.question(
+            self, "确认导出",
+            f"确定要导出选中的 {count} 条规则吗？",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "导出规则", "", "CSV Files (*.csv)"
+        )
+        if not file_path:
+            return
+
+        import csv
+        try:
+            with open(file_path, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerow(["fileType", "fileMatch", "fieldPath", "enabled"])
+                for index in self.selected_rule_indices:
+                    rule = self.rules[index]
+                    writer.writerow([
+                        rule.get("fileType", ""),
+                        rule.get("fileMatch", ""),
+                        rule.get("fieldPath", ""),
+                        rule.get("enabled", True)
+                    ])
+            QMessageBox.information(self, "导出成功", f"已导出 {count} 条规则到：\n{file_path}")
+        except Exception as e:
+            QMessageBox.warning(self, "导出失败", f"导出失败：{str(e)}")
+
+    def import_rules(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "导入规则", "", "CSV Files (*.csv)"
+        )
+        if not file_path:
+            return
+
+        import csv
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                reader = csv.reader(f)
+                header = next(reader)
+                if header != ["fileType", "fileMatch", "fieldPath", "enabled"]:
+                    QMessageBox.warning(self, "导入失败", "CSV格式不正确")
+                    return
+
+                imported_count = 0
+                skipped_count = 0
+                for row in reader:
+                    if len(row) < 3:
+                        continue
+                    rule = {
+                        "fileType": row[0],
+                        "fileMatch": row[1],
+                        "fieldPath": row[2],
+                        "enabled": row[3].lower() == "true" if len(row) > 3 else True
+                    }
+                    is_duplicate = False
+                    for r in self.rules:
+                        if r["fileType"] == rule["fileType"] and r["fileMatch"] == rule["fileMatch"] and r["fieldPath"] == rule["fieldPath"]:
+                            is_duplicate = True
+                            break
+                    if is_duplicate:
+                        skipped_count += 1
+                    else:
+                        self.rules.append(rule)
+                        imported_count += 1
+
+                self.update_rule_table()
+                msg = f"导入完成！\n新增：{imported_count} 条\n跳过（重复）：{skipped_count} 条"
+                QMessageBox.information(self, "导入成功", msg)
+        except Exception as e:
+            QMessageBox.warning(self, "导入失败", f"导入失败：{str(e)}")
 
     def edit_selected_rule(self):
         if len(self.selected_rule_indices) != 1:
