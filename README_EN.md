@@ -77,15 +77,21 @@ Click **+ 新增项目** and configure:
 - **Project Path**: Select your project root directory
 - **Secret Path**: Choose a location outside your project to store sensitive data
 
+![Project Page](image/项目页面.png)
+
 ### 2. Configure Desensitization Rules
 
 Click **编辑** on a project, then **+ 新增规则** to add rules:
+
+![Edit Interface](image/编辑界面.png)
 
 | File Type | Description | Example Field Path |
 |-----------|-------------|-------------------|
 | `yml` | YAML files | `spring.datasource.password` |
 | `env` | Environment files | `DB_PASSWORD` |
 | `json` | JSON files (JSONPath) | `$.database.password` |
+
+![New Entry Interface](image/新增界面.png)
 
 #### Field Path Examples
 

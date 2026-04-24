@@ -63,7 +63,7 @@ pip install -r requirements.txt
 #### 运行程序
 
 ```bash
-python main.py
+python src/main.py
 ```
 
 或者在 Windows 上双击 `run.bat`。
@@ -77,15 +77,21 @@ python main.py
 - **项目路径**：选择你的项目根目录
 - **敏感数据路径**：选择一个项目外的目录用于存储敏感数据
 
+![项目页面](image/项目页面.png)
+
 ### 2. 配置脱敏规则
 
 点击项目上的 **编辑**，然后点击 **+ 新增规则** 添加规则：
+
+![编辑界面](image/编辑界面.png)
 
 | 文件类型 | 说明 | 示例字段路径 |
 |---------|------|------------|
 | `yml` | YAML 配置文件 | `spring.datasource.password` |
 | `env` | 环境变量文件 | `DB_PASSWORD` |
 | `json` | JSON 配置文件 | `$.database.password` |
+
+![新增界面](image/新增界面.png)
 
 #### 字段路径示例
 
