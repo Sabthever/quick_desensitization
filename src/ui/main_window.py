@@ -329,6 +329,7 @@ class ProjectEditDialog(QDialog):
         self.project = project
         self.rules = []
         self.is_desensitized = False
+        self.config_file_opened = False
         self.init_ui()
         self.load_rules()
         self.check_desensitized_status()
@@ -587,7 +588,22 @@ class ProjectEditDialog(QDialog):
         self.delete_rule_btn.setEnabled(selection_count >= 1)
         self.toggle_rule_btn.setEnabled(selection_count >= 1)
 
+    def check_config_file_opened(self):
+        if self.config_file_opened:
+            reply = QMessageBox.question(
+                self, "确认",
+                "配置文件可能正在被编辑，请确认已关闭配置文件。\n\n是否继续操作？",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.Yes:
+                self.config_file_opened = False
+                return False
+            return True
+        return False
+
     def add_rule(self):
+        if self.check_config_file_opened():
+            return
         dialog = RuleDialog(self)
         if dialog.exec() == QDialog.Accepted:
             rule = dialog.get_rule()
@@ -599,6 +615,8 @@ class ProjectEditDialog(QDialog):
             self.update_rule_table()
 
     def export_selected_rules(self):
+        if self.check_config_file_opened():
+            return
         if not self.selected_rule_indices:
             QMessageBox.warning(self, "提示", "请先选择要导出的规则")
             return
@@ -636,6 +654,8 @@ class ProjectEditDialog(QDialog):
             QMessageBox.warning(self, "导出失败", f"导出失败：{str(e)}")
 
     def import_rules(self):
+        if self.check_config_file_opened():
+            return
         file_path, _ = QFileDialog.getOpenFileName(
             self, "导入规则", "", "CSV Files (*.csv)"
         )
@@ -680,6 +700,8 @@ class ProjectEditDialog(QDialog):
             QMessageBox.warning(self, "导入失败", f"导入失败：{str(e)}")
 
     def edit_selected_rule(self):
+        if self.check_config_file_opened():
+            return
         if len(self.selected_rule_indices) != 1:
             QMessageBox.warning(self, "提示", "请选择一条规则进行编辑")
             return
@@ -693,6 +715,8 @@ class ProjectEditDialog(QDialog):
             self.update_rule_table()
 
     def delete_selected_rule(self):
+        if self.check_config_file_opened():
+            return
         if not self.selected_rule_indices:
             QMessageBox.warning(self, "提示", "请先选择要删除的规则")
             return
@@ -716,6 +740,8 @@ class ProjectEditDialog(QDialog):
             self.rule_table.itemSelectionChanged.connect(self.on_selection_changed)
 
     def toggle_selected_rule(self):
+        if self.check_config_file_opened():
+            return
         if not self.selected_rule_indices:
             QMessageBox.warning(self, "提示", "请先选择要切换状态的规则")
             return
@@ -728,7 +754,8 @@ class ProjectEditDialog(QDialog):
         config_file = Path(self.project.get("secretPath", "")) / "secret_config.csv"
         if not config_file.exists():
             self.storage.save_secret_config(self.project.get("secretPath", ""), [])
-        subprocess.run(["notepad", str(config_file)])
+        self.config_file_opened = True
+        subprocess.Popen(["notepad", str(config_file)])
 
     def save(self):
         reply = QMessageBox.question(
@@ -737,6 +764,11 @@ class ProjectEditDialog(QDialog):
             QMessageBox.Yes | QMessageBox.No
         )
         if reply != QMessageBox.Yes:
+            return
+
+        config_file = Path(self.project.get("secretPath", "")) / "secret_config.csv"
+        if self.storage.is_file_locked(config_file):
+            QMessageBox.warning(self, "文件被占用", "secret_config.csv 文件正在被其他程序打开，请先关闭该文件后再保存。")
             return
 
         self.storage.save_secret_config(self.project.get("secretPath", ""), self.rules)
@@ -945,6 +977,11 @@ class MainWindow(QWidget):
 
         self.storage.ensure_secret_path(secret_path)
 
+        secret_file = Path(secret_path) / "secret.csv"
+        if self.storage.is_file_locked(secret_file):
+            QMessageBox.warning(self, "文件被占用", "secret.csv 文件正在被其他程序打开，请先关闭该文件后再脱敏。")
+            return
+
         matched_files = self.engine.scan_files(project_path, enabled_rules)
 
         if not matched_files:
@@ -1007,6 +1044,11 @@ class MainWindow(QWidget):
         secrets = self.storage.load_secrets(secret_path)
         if not secrets:
             QMessageBox.information(self, "提示", "没有可恢复的数据")
+            return
+
+        secret_file = Path(secret_path) / "secret.csv"
+        if self.storage.is_file_locked(secret_file):
+            QMessageBox.warning(self, "文件被占用", "secret.csv 文件正在被其他程序打开，请先关闭该文件后再恢复。")
             return
 
         rules = self.storage.load_secret_config(secret_path)

@@ -17,6 +17,16 @@ class Storage:
         self.projects_file = self.config_dir / "projects.json"
         self._init_projects_file()
 
+    def is_file_locked(self, file_path):
+        if not Path(file_path).exists():
+            return False
+        try:
+            fd = os.open(str(file_path), os.O_RDWR | os.O_EXCL)
+            os.close(fd)
+            return False
+        except (OSError, PermissionError):
+            return True
+
     def _init_projects_file(self):
         if not self.projects_file.exists():
             self._save_projects({"projects": []})
