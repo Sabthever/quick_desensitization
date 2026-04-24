@@ -180,6 +180,11 @@ class Storage:
         self.save_secrets(secret_path, secrets)
         return is_new
 
+    def clear_secrets(self, secret_path):
+        secret_file = Path(secret_path) / "secret.csv"
+        if secret_file.exists():
+            self.save_secrets(secret_path, [])
+
     def create_backup(self, secret_path, file_path, content):
         import hashlib
         backup_dir = Path(secret_path) / "backup"

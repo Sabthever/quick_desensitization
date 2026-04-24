@@ -1058,6 +1058,7 @@ class MainWindow(QWidget):
                 restored_count += 1
 
         if restored_count > 0:
+            self.storage.clear_secrets(secret_path)
             QMessageBox.information(self, "恢复成功", "恢复完成！")
         else:
             QMessageBox.information(self, "提示", "配置文件未脱敏，无需恢复")
