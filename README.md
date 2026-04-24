@@ -135,11 +135,12 @@ $.database.*.password               # 通配符匹配
 
 ```
 quick_desensitization/
-├── main.py                 # 程序入口
-├── desensitize_engine.py   # 核心脱敏逻辑
-├── storage.py              # 数据持久化层
-├── ui/
-│   └── main_window.py      # GUI 组件
+├── src/
+│   ├── main.py                 # 程序入口
+│   ├── desensitize_engine.py   # 核心脱敏逻辑
+│   ├── storage.py              # 数据持久化层
+│   └── ui/
+│       └── main_window.py      # GUI 组件
 ├── requirements.txt        # Python 依赖
 └── run.bat                 # Windows 启动脚本
 ```

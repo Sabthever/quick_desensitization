@@ -63,7 +63,7 @@ pip install -r requirements.txt
 #### Run
 
 ```bash
-python main.py
+python src/main.py
 ```
 
 Or simply double-click `run.bat` on Windows.
@@ -135,11 +135,12 @@ When you receive help from AI and need the original values back:
 
 ```
 quick_desensitization/
-├── main.py                 # Application entry point
-├── desensitize_engine.py   # Core desensitization logic
-├── storage.py              # Data persistence layer
-├── ui/
-│   └── main_window.py      # GUI components
+├── src/
+│   ├── main.py                 # Application entry point
+│   ├── desensitize_engine.py   # Core desensitization logic
+│   ├── storage.py              # Data persistence layer
+│   └── ui/
+│       └── main_window.py      # GUI components
 ├── requirements.txt        # Python dependencies
 └── run.bat                 # Windows launcher
 ```
