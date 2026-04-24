@@ -546,7 +546,17 @@ class ProjectEditDialog(QDialog):
             self.rule_table.itemSelectionChanged.connect(self.on_selection_changed)
 
     def update_button_states(self):
+        if self.is_desensitized:
+            self.add_rule_btn.setEnabled(False)
+            self.open_config_btn.setEnabled(False)
+            self.edit_rule_btn.setEnabled(False)
+            self.delete_rule_btn.setEnabled(False)
+            self.toggle_rule_btn.setEnabled(False)
+            return
+
         selection_count = len(self.selected_rule_indices)
+        self.add_rule_btn.setEnabled(True)
+        self.open_config_btn.setEnabled(True)
         self.edit_rule_btn.setEnabled(selection_count == 1)
         self.delete_rule_btn.setEnabled(selection_count >= 1)
         self.toggle_rule_btn.setEnabled(selection_count >= 1)
