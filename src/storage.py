@@ -81,6 +81,17 @@ class Storage:
                 return p
         return None
 
+    def is_alias_exists(self, alias: str, exclude_project_id: str = None):
+        if not alias:
+            return False
+        projects = self.get_projects()
+        for p in projects:
+            if p.get("alias") == alias:
+                if exclude_project_id and p.get("id") == exclude_project_id:
+                    continue
+                return True
+        return False
+
     def get_projects_using_secret_path(self, secret_path):
         projects = self.get_projects()
         return [p for p in projects if p.get("secretPath") == secret_path]

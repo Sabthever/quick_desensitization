@@ -3,7 +3,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTableWidget,
     QTableWidgetItem, QHeaderView, QMessageBox, QDialog, QLineEdit,
     QLabel, QFileDialog, QAbstractItemView, QGroupBox,
-    QFormLayout, QCheckBox
+    QFormLayout, QCheckBox, QApplication
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
@@ -130,6 +130,11 @@ class ProjectDialog(QDialog):
             self.secret_path = path
 
     def validate(self):
+        alias = self.alias_input.text().strip()
+        if alias and self.storage.is_alias_exists(alias):
+            QMessageBox.warning(self, "校验失败", f"别名「{alias}」已被其他项目使用，请换一个")
+            return False
+
         if self.project is None:
             if not self.project_path:
                 QMessageBox.warning(self, "校验失败", "请选择项目路径")
@@ -773,9 +778,16 @@ class ProjectEditDialog(QDialog):
 
         self.storage.save_secret_config(self.project.get("secretPath", ""), self.rules)
         alias = self.alias_input.text().strip()
-        if alias != self.project.get("alias"):
+        if alias:
+            if alias != self.project.get("alias") and self.storage.is_alias_exists(alias, exclude_project_id=self.project.get("id")):
+                QMessageBox.warning(self, "校验失败", f"别名「{alias}」已被其他项目使用，请换一个")
+                return
             self.project["alias"] = alias
             self.storage.update_project(self.project["id"], {"alias": alias})
+        else:
+            if self.project.get("alias"):
+                self.project["alias"] = ""
+                self.storage.update_project(self.project["id"], {"alias": ""})
         self.accept()
 
     def check_desensitized_status(self):
@@ -837,6 +849,10 @@ class MainWindow(QWidget):
         add_btn.setObjectName("primaryBtn")
         add_btn.clicked.connect(self.add_project)
         header_layout.addWidget(add_btn)
+
+        mcp_btn = QPushButton("📋 MCP配置")
+        mcp_btn.clicked.connect(self.copy_mcp_config)
+        header_layout.addWidget(mcp_btn)
 
         move_up_btn = QPushButton("↑ 上移")
         move_up_btn.clicked.connect(self.move_up_project)
@@ -1129,3 +1145,24 @@ class MainWindow(QWidget):
             self.storage.delete_project(project["id"])
             self.load_projects()
             QMessageBox.information(self, "删除成功", "项目配置已删除")
+
+    def copy_mcp_config(self):
+        src_dir = str(Path(__file__).resolve().parent.parent)
+
+        config = {
+            "mcpServers": {
+                "desensitization-tool": {
+                    "command": "python",
+                    "args": ["-u", "main.py"],
+                    "cwd": src_dir
+                }
+            }
+        }
+
+        text = json.dumps(config, ensure_ascii=False, indent=2)
+        QApplication.clipboard().setText(text)
+        QMessageBox.information(self, "已复制",
+            "MCP 配置文件已复制到剪贴板！\n\n"
+            "请在 AI 编辑器的 MCP 配置文件中粘贴使用。\n\n"
+            "本工具目前只有一个实例，调用时通过 project_alias 参数指定操作哪个项目。\n"
+            "可用别名可在项目列表中查看，也可直接询问 AI 助手。")
