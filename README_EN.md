@@ -30,6 +30,8 @@ As AI coding assistants become increasingly prevalent in software development, d
 - **Ready-to-Run EXE**: Download and double-click to run, no setup needed
 - **Batch Operations**: Multi-select rules for batch delete, enable/disable
 - **Import/Export**: Import and export desensitization rules for reuse
+- **MCP Integration**: Supports MCP (Model Context Protocol) for deep integration with AI coding assistants
+- **Standalone Mode**: Supports `--mcp` flag to run MCP server without GUI
 
 ## Installation
 
@@ -77,7 +79,8 @@ Or simply double-click `run.bat` on Windows.
 Click **+ 新增项目** and configure:
 
 - **Project Path**: Select your project root directory
-- **Secret Path**: Choose a location outside your project to store sensitive data
+- **Alias**: Unique identifier for the project, used for MCP invocation
+- **Secret Path**: Auto-generated to config directory as `{alias}_{timestamp}`, can be modified after creation in the edit dialog
 
 ![Project Page](image/项目页面.png)
 
@@ -150,6 +153,67 @@ When you receive help from AI and need the original values back:
 1. Click **恢复** on the project
 2. All original values will be restored from the secret storage
 3. **Important**: After debugging, run **脱敏** again to protect your data!
+
+### 6. MCP Integration
+
+This tool supports MCP (Model Context Protocol) for deep integration with AI coding assistants like Cursor, Windsurf, Trae, and more.
+
+#### Available MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `list_projects` | List all configured projects |
+| `get_project_rules` | Get desensitization rules for a project (with IDs) |
+| `add_project_rule` | Add a desensitization rule to a project |
+| `edit_project_rule` | Edit a rule by ID |
+| `delete_project_rule` | Delete a rule by ID |
+| `toggle_project_rule` | Enable/disable a rule by ID |
+| `add_project` | Add a new project (auto-generates secret path) |
+| `desensitize` | Desensitize a project |
+| `restore` | Restore original values for a project |
+
+#### Getting MCP Configuration
+
+Click the **📋 MCP配置** button in the toolbar. The configuration will be copied to your clipboard. Paste it into your AI editor's MCP settings.
+
+> Note: The tool automatically detects whether it's running in source mode or as a packaged exe and generates the appropriate configuration.
+
+#### Source Mode MCP Config Example
+
+```json
+{
+  "mcpServers": {
+    "desensitization-tool": {
+      "command": "python",
+      "args": ["-u", "main.py"],
+      "cwd": "E:\\...\\quick_desensitization\\src"
+    }
+  }
+}
+```
+
+#### Standalone Mode (After Packaging to exe)
+
+After packaging to exe, use the `--mcp` flag to run MCP server without GUI:
+
+```json
+{
+  "mcpServers": {
+    "desensitization-tool": {
+      "command": "E:\\...\\quick_desensitization.exe",
+      "args": ["--mcp"]
+    }
+  }
+}
+```
+
+#### AI Usage Examples
+
+```
+Desensitize the project named "my-project"
+List all projects
+Add a rule for "ruoyi-test" project: file type yml, match application*.yml, field path spring.datasource.password
+```
 
 ## File Structure
 

@@ -30,6 +30,8 @@
 - **即开即用**：提供打包好的 EXE 文件，双击即可运行
 - **批量操作**：支持多选规则进行批量删除、启用/禁用
 - **导入导出**：支持导入导出脱敏规则，方便规则复用
+- **MCP 集成**：支持 MCP（Model Context Protocol），可与 AI 编程助手深度集成
+- **独立模式**：支持 `--mcp` 参数以无界面模式运行 MCP 服务
 
 ## 安装使用
 
@@ -77,7 +79,8 @@ python src/main.py
 点击 **+ 新增项目**，配置以下信息：
 
 - **项目路径**：选择你的项目根目录
-- **敏感数据路径**：选择一个项目外的目录用于存储敏感数据
+- **别名**：项目的唯一标识符，用于 MCP 调用
+- **敏感数据路径**：自动生成到配置目录中 `{别名}_{创建时间戳}`，建好后可在编辑中自行修改
 
 ![项目页面](image/项目页面.png)
 
@@ -150,6 +153,67 @@ $.database.*.password               # 通配符匹配
 1. 点击项目上的 **恢复**
 2. 所有原始值将从敏感数据存储中恢复
 3. **重要**：调试完成后，请再次点击 **脱敏** 保护你的数据！
+
+### 6. MCP 集成
+
+本工具支持 MCP（Model Context Protocol），可与 AI 编程助手（如 Cursor、Windsurf、Trae 等）深度集成使用。
+
+#### MCP 工具一览
+
+| 工具 | 说明 |
+|------|------|
+| `list_projects` | 列出所有已配置的脱敏项目 |
+| `get_project_rules` | 获取指定项目的脱敏规则列表（含 ID） |
+| `add_project_rule` | 为项目添加一条脱敏规则 |
+| `edit_project_rule` | 按 ID 编辑某条脱敏规则 |
+| `delete_project_rule` | 按 ID 删除某条脱敏规则 |
+| `toggle_project_rule` | 按 ID 启用/禁用某条脱敏规则 |
+| `add_project` | 新增脱敏项目（自动生成敏感数据路径） |
+| `desensitize` | 对项目执行脱敏操作 |
+| `restore` | 对项目执行数据还原 |
+
+#### 获取 MCP 配置
+
+点击工具栏上的 **📋 MCP配置** 按钮，配置文件会自动复制到剪贴板，然后粘贴到 AI 编辑器的 MCP 配置中使用。
+
+> 注意：工具会自动检测当前是源码模式还是打包后的 exe 模式，生成对应的配置内容。
+
+#### 源码模式 MCP 配置示例
+
+```json
+{
+  "mcpServers": {
+    "desensitization-tool": {
+      "command": "python",
+      "args": ["-u", "main.py"],
+      "cwd": "E:\\...\\quick_desensitization\\src"
+    }
+  }
+}
+```
+
+#### 独立模式运行（打包为 exe 后）
+
+打包为 exe 后，可使用 `--mcp` 参数以无界面方式运行 MCP 服务：
+
+```json
+{
+  "mcpServers": {
+    "desensitization-tool": {
+      "command": "E:\\...\\quick_desensitization.exe",
+      "args": ["--mcp"]
+    }
+  }
+}
+```
+
+#### AI 调用示例
+
+```
+帮我对 "my-project" 这个项目执行脱敏操作
+列出所有项目
+给 "ruoyi-test" 项目添加一条规则，文件类型为 yml，匹配 application*.yml，字段路径为 spring.datasource.password
+```
 
 ## 项目结构
 

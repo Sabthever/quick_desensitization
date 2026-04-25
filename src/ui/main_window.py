@@ -8,6 +8,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from pathlib import Path
+from datetime import datetime
+import sys
 import subprocess
 import json
 
@@ -21,7 +23,6 @@ class ProjectDialog(QDialog):
         self.storage = storage
         self.project = project
         self.project_path = None
-        self.secret_path = None
         self.init_ui()
 
     def init_ui(self):
@@ -59,24 +60,7 @@ class ProjectDialog(QDialog):
             self.path_btn.setEnabled(False)
         form_layout.addRow("项目路径 *", path_layout)
 
-        secret_layout = QHBoxLayout()
-        self.secret_input = QLineEdit()
-        self.secret_input.setPlaceholderText("必填，敏感数据存放路径（必须在项目路径外）")
-        self.secret_btn = QPushButton("浏览...")
-        self.secret_btn.clicked.connect(self.select_secret_path)
-        secret_layout.addWidget(self.secret_input)
-        secret_layout.addWidget(self.secret_btn)
-        form_layout.addRow("敏感数据路径 *", secret_layout)
-
         layout.addLayout(form_layout)
-
-        self.tip_group = QGroupBox("提示")
-        tip_layout = QVBoxLayout()
-        tip_layout.addWidget(QLabel("• 敏感数据路径必须位于项目路径外"))
-        tip_layout.addWidget(QLabel("• 如果路径不存在或为空，将自动创建"))
-        tip_layout.addWidget(QLabel("• 如果路径已存在且非空，会提示确认是否继续"))
-        self.tip_group.setLayout(tip_layout)
-        layout.addWidget(self.tip_group)
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
@@ -95,9 +79,7 @@ class ProjectDialog(QDialog):
             self.name_label.setText(self.project.get("name", ""))
             self.alias_input.setText(self.project.get("alias", ""))
             self.path_input.setText(self.project.get("projectPath", ""))
-            self.secret_input.setText(self.project.get("secretPath", ""))
             self.project_path = self.project.get("projectPath", "")
-            self.secret_path = self.project.get("secretPath", "")
 
     def select_project_path(self):
         path = QFileDialog.getExistingDirectory(self, "选择项目路径")
@@ -115,20 +97,6 @@ class ProjectDialog(QDialog):
             project_name = Path(path).name
             self.name_label.setText(project_name)
 
-    def select_secret_path(self):
-        path = QFileDialog.getExistingDirectory(self, "选择敏感数据路径")
-        if path:
-            existing_projects = self.storage.get_projects_using_secret_path(path)
-            if existing_projects:
-                project_names = ", ".join([p.get("name", "未命名") for p in existing_projects])
-                QMessageBox.warning(
-                    self, "路径已被使用",
-                    f"该路径已被以下项目使用：\n{project_names}\n\n请选择其他路径"
-                )
-                return
-            self.secret_input.setText(path)
-            self.secret_path = path
-
     def validate(self):
         alias = self.alias_input.text().strip()
         if alias and self.storage.is_alias_exists(alias):
@@ -140,36 +108,7 @@ class ProjectDialog(QDialog):
                 QMessageBox.warning(self, "校验失败", "请选择项目路径")
                 return False
 
-            if not self.secret_path:
-                QMessageBox.warning(self, "校验失败", "请选择敏感数据路径")
-                return False
-
-            if not self._is_path_outside_project():
-                QMessageBox.warning(self, "校验失败", "敏感数据路径不能在项目路径下")
-                return False
-
-            check_result, status = self.storage.ensure_secret_path(self.secret_path)
-            if not check_result and status == "not_empty":
-                reply = QMessageBox.question(
-                    self, "确认",
-                    "该目录可能包含其他项目的数据，是否继续？",
-                    QMessageBox.Yes | QMessageBox.No
-                )
-                if reply != QMessageBox.Yes:
-                    return False
-
         return True
-
-    def _is_path_outside_project(self):
-        if not self.project_path or not self.secret_path:
-            return True
-        project_p = Path(self.project_path).resolve()
-        secret_p = Path(self.secret_path).resolve()
-        try:
-            secret_p.relative_to(project_p)
-            return False
-        except ValueError:
-            return True
 
     def on_next(self):
         if not self.validate():
@@ -182,11 +121,14 @@ class ProjectDialog(QDialog):
         self.accept()
 
     def get_project_data(self):
+        alias = self.alias_input.text().strip() or self.name_label.text()
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        secret_path = str(self.storage.config_dir / f"{alias}_{timestamp}")
         return {
             "name": self.name_label.text(),
             "alias": self.alias_input.text(),
             "projectPath": self.path_input.text(),
-            "secretPath": self.secret_input.text()
+            "secretPath": secret_path
         }
 
 
@@ -958,6 +900,7 @@ class MainWindow(QWidget):
             new_project = self.storage.add_project(project_data)
 
             secret_path = project_data["secretPath"]
+            Path(secret_path).mkdir(parents=True, exist_ok=True)
             config_file = Path(secret_path) / "secret_config.csv"
             if not config_file.exists():
                 rule = {"fileType": "yml", "fileMatch": "application*.yml", "fieldPath": "spring.datasource.password"}
@@ -1147,22 +1090,36 @@ class MainWindow(QWidget):
             QMessageBox.information(self, "删除成功", "项目配置已删除")
 
     def copy_mcp_config(self):
-        src_dir = str(Path(__file__).resolve().parent.parent)
+        is_frozen = getattr(sys, 'frozen', False) or getattr(sys, '__compiled__', False)
 
-        config = {
-            "mcpServers": {
-                "desensitization-tool": {
-                    "command": "python",
-                    "args": ["-u", "main.py"],
-                    "cwd": src_dir
+        if is_frozen:
+            config = {
+                "mcpServers": {
+                    "desensitization-tool": {
+                        "command": sys.executable,
+                        "args": ["--mcp"]
+                    }
                 }
             }
-        }
+            mode_info = "打包模式（exe）"
+        else:
+            src_dir = str(Path(__file__).resolve().parent.parent)
+            config = {
+                "mcpServers": {
+                    "desensitization-tool": {
+                        "command": "python",
+                        "args": ["-u", "main.py"],
+                        "cwd": src_dir
+                    }
+                }
+            }
+            mode_info = "源码模式（python）"
 
         text = json.dumps(config, ensure_ascii=False, indent=2)
         QApplication.clipboard().setText(text)
         QMessageBox.information(self, "已复制",
-            "MCP 配置文件已复制到剪贴板！\n\n"
-            "请在 AI 编辑器的 MCP 配置文件中粘贴使用。\n\n"
-            "本工具目前只有一个实例，调用时通过 project_alias 参数指定操作哪个项目。\n"
-            "可用别名可在项目列表中查看，也可直接询问 AI 助手。")
+            f"MCP 配置文件已复制到剪贴板！\n\n"
+            f"当前模式：{mode_info}\n"
+            f"请在 AI 编辑器的 MCP 配置文件中粘贴使用。\n\n"
+            f"本工具目前只有一个实例，调用时通过 project_alias 参数指定操作哪个项目。\n"
+            f"可用别名可在项目列表中查看，也可直接询问 AI 助手。")
