@@ -1089,8 +1089,16 @@ class MainWindow(QWidget):
             self.load_projects()
             QMessageBox.information(self, "删除成功", "项目配置已删除")
 
+    def _is_frozen(self):
+        if getattr(sys, 'frozen', False):
+            return True
+        try:
+            return __compiled__ is not None
+        except NameError:
+            return False
+
     def copy_mcp_config(self):
-        is_frozen = getattr(sys, 'frozen', False) or getattr(sys, '__compiled__', False)
+        is_frozen = self._is_frozen()
 
         if is_frozen:
             config = {
