@@ -175,6 +175,8 @@ This tool supports MCP (Model Context Protocol) for deep integration with AI cod
 | `desensitize`         | Desensitize a project                              |
 | `restore`             | Restore original values for a project              |
 
+> ⚠️ **Important**: It is strongly recommended to add projects (`add_project`) via the GUI instead of through MCP. Adding a project via MCP exposes the project path to the AI model, which could then be used by the model to read sensitive files. Use the GUI to create projects safely, and let the AI model only operate on pre-configured projects via MCP.
+
 #### Getting MCP Configuration
 
 Click the **📋 MCP配置** button in the toolbar. The configuration will be copied to your clipboard. Paste it into your AI editor's MCP settings.
