@@ -208,8 +208,6 @@ class DesensitizationMCPServer:
                 "id": p.get("id"),
                 "name": p.get("name"),
                 "alias": p.get("alias", ""),
-                "projectPath": p.get("projectPath"),
-                "secretPath": p.get("secretPath"),
                 "createdAt": p.get("createdAt"),
                 "updatedAt": p.get("updatedAt")
             })
@@ -380,9 +378,7 @@ class DesensitizationMCPServer:
             "project": {
                 "id": new_project["id"],
                 "name": project_name,
-                "alias": alias,
-                "projectPath": project_path,
-                "secretPath": secret_path
+                "alias": alias
             }
         }, ensure_ascii=False, indent=2))]
 
