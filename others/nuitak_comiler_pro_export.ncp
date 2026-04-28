@@ -13,7 +13,7 @@
     "jobs": "8",
     "msvc": "none",
     "python_opt": "",
-    "output_filename": "脱敏小工具",
+    "output_filename": "MultiMask",
     "follow_imports": false,
     "show_scons": false,
     "assume_yes": false,

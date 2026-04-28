@@ -389,7 +389,7 @@ class DesensitizationMCPServer:
         alias = args["project_alias"]
         return [TextContent(type="text", text=json.dumps({
             "success": False,
-            "message": f"请在脱敏小工具软件界面中手动删除项目「{alias}」的配置。MCP 工具不支持自动删除，请打开软件后点击项目对应的「删除」按钮进行操作。"
+            "message": f"请在 MultiMask 软件界面中手动删除项目「{alias}」的配置。MCP 工具不支持自动删除，请打开软件后点击项目对应的「删除」按钮进行操作。"
         }, ensure_ascii=False, indent=2))]
 
     async def _handle_desensitize(self, args: dict):

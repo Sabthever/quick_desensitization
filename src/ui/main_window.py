@@ -775,14 +775,14 @@ class MainWindow(QWidget):
         self.load_projects()
 
     def init_ui(self):
-        self.setWindowTitle("脱敏小工具")
+        self.setWindowTitle("MultiMask - YAML, ENV, JSON. One rule to mask them all.")
         self.setMinimumWidth(900)
         self.setMinimumHeight(500)
 
         layout = QVBoxLayout(self)
 
         header_layout = QHBoxLayout()
-        title = QLabel("脱敏小工具")
+        title = QLabel("项目列表")
         title.setFont(QFont("Microsoft YaHei", 16, QFont.Bold))
         header_layout.addWidget(title)
         header_layout.addStretch()

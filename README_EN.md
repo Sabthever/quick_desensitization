@@ -27,7 +27,7 @@ As AI coding assistants become increasingly prevalent in software development, d
 - **Project Management**: Manage multiple projects with different configurations
 - **One-click Restore**: Restore all original values with a single click
 - **GUI Interface**: User-friendly desktop application (Chinese interface)
-- **Ready-to-Run EXE**: Download and double-click to run, no setup needed
+- **Ready-to-Run EXE**: Download MultiMask.exe and double-click to run, no setup needed
 - **Batch Operations**: Multi-select rules for batch delete, enable/disable
 - **Import/Export**: Import and export desensitization rules for reuse
 - **MCP Integration**: Supports MCP (Model Context Protocol) for deep integration with AI coding assistants
@@ -90,17 +90,18 @@ Click **编辑** on a project, then **+ 新增规则** to add rules:
 
 ![Edit Interface](image/编辑界面.png)
 
-| File Type | Description | Example Field Path |
-|-----------|-------------|-------------------|
-| `yml` | YAML files | `spring.datasource.password` |
-| `env` | Environment files | `DB_PASSWORD` |
-| `json` | JSON files (JSONPath) | `$.database.password` |
+| File Type | Description           | Example Field Path           |
+| --------- | --------------------- | ---------------------------- |
+| `yml`     | YAML files            | `spring.datasource.password` |
+| `env`     | Environment files     | `DB_PASSWORD`                |
+| `json`    | JSON files (JSONPath) | `$.database.password`        |
 
 ![New Entry Interface](image/新增界面.png)
 
 #### Field Path Examples
 
 **YAML:**
+
 ```
 spring.datasource.password          # Exact match
 spring.datasource.*.password        # Match one level
@@ -108,6 +109,7 @@ spring.datasource.**.password       # Match any level (recursive)
 ```
 
 **ENV:**
+
 ```
 DB_PASSWORD                         # Exact key name
 DB_*                                # All keys starting with DB_
@@ -115,6 +117,7 @@ DB_*                                # All keys starting with DB_
 ```
 
 **JSON (JSONPath):**
+
 ```
 $.database.password                 # Exact path
 $..password                         # Recursive match (any location)
@@ -160,17 +163,17 @@ This tool supports MCP (Model Context Protocol) for deep integration with AI cod
 
 #### Available MCP Tools
 
-| Tool | Description |
-|------|-------------|
-| `list_projects` | List all configured projects |
-| `get_project_rules` | Get desensitization rules for a project (with IDs) |
-| `add_project_rule` | Add a desensitization rule to a project |
-| `edit_project_rule` | Edit a rule by ID |
-| `delete_project_rule` | Delete a rule by ID |
-| `toggle_project_rule` | Enable/disable a rule by ID |
-| `add_project` | Add a new project (auto-generates secret path) |
-| `desensitize` | Desensitize a project |
-| `restore` | Restore original values for a project |
+| Tool                  | Description                                        |
+| --------------------- | -------------------------------------------------- |
+| `list_projects`       | List all configured projects                       |
+| `get_project_rules`   | Get desensitization rules for a project (with IDs) |
+| `add_project_rule`    | Add a desensitization rule to a project            |
+| `edit_project_rule`   | Edit a rule by ID                                  |
+| `delete_project_rule` | Delete a rule by ID                                |
+| `toggle_project_rule` | Enable/disable a rule by ID                        |
+| `add_project`         | Add a new project (auto-generates secret path)     |
+| `desensitize`         | Desensitize a project                              |
+| `restore`             | Restore original values for a project              |
 
 #### Getting MCP Configuration
 
@@ -200,7 +203,7 @@ After packaging to exe, use the `--mcp` flag to run MCP server without GUI:
 {
   "mcpServers": {
     "desensitization-tool": {
-      "command": "E:\\...\\quick_desensitization.exe",
+      "command": "E:\\...\\MultiMask.exe",
       "args": ["--mcp"]
     }
   }
@@ -250,7 +253,7 @@ Stored in:       secret.csv (secret path, Base64 encoded)
 
 ## Configuration Files
 
-### secret_config.csv
+### secret\_config.csv
 
 Located in your secret path, defines desensitization rules:
 

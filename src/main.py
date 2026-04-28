@@ -15,7 +15,7 @@ def run_mcp_only(storage):
 
 def run_gui(storage):
     app = QApplication(sys.argv)
-    app.setApplicationName("脱敏小工具")
+    app.setApplicationName("MultiMask")
     app.setOrganizationName("DesensitizationTool")
 
     from mcp_server import start_mcp_server_in_thread

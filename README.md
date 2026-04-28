@@ -200,7 +200,7 @@ $.database.*.password               # 通配符匹配
 {
   "mcpServers": {
     "desensitization-tool": {
-      "command": "E:\\...\\quick_desensitization.exe",
+      "command": "E:\\...\\MultiMask.exe",
       "args": ["--mcp"]
     }
   }
