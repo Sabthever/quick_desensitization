@@ -8,7 +8,7 @@ from mcp_server import DesensitizationMCPServer
 
 
 def run_mcp_only(storage):
-    print("[MCP] 以 MCP 模式启动（无界面）...")
+    print("[MCP] Starting in MCP mode (headless)...")
     mcp_server = DesensitizationMCPServer(storage)
     asyncio.run(mcp_server.run_async())
 
@@ -20,7 +20,7 @@ def run_gui(storage):
 
     from mcp_server import start_mcp_server_in_thread
     mcp_thread = start_mcp_server_in_thread(storage)
-    print(f"[MCP] MCP Server 已启动 (线程: {mcp_thread.name})")
+    print(f"[MCP] MCP Server started (thread: {mcp_thread.name})")
 
     window = MainWindow(storage)
     window.show()

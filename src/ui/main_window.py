@@ -15,6 +15,7 @@ import json
 
 from desensitize_engine import DesensitizeEngine
 from storage import Storage
+from i18n import tr, get_lang, toggle_lang
 
 
 class ProjectDialog(QDialog):
@@ -27,7 +28,7 @@ class ProjectDialog(QDialog):
 
     def init_ui(self):
         is_edit = self.project is not None
-        self.setWindowTitle("编辑项目" if is_edit else "新增项目")
+        self.setWindowTitle(tr("dlg_edit_project") if is_edit else tr("dlg_add_project"))
         self.setMinimumWidth(600)
 
         layout = QVBoxLayout(self)
@@ -41,36 +42,36 @@ class ProjectDialog(QDialog):
         name_layout.setContentsMargins(0, 0, 0, 0)
         name_layout.addWidget(self.name_label)
         if not is_edit:
-            name_layout.addWidget(QLabel("(从路径自动提取，不可编辑)"))
-        form_layout.addRow("项目名称", name_row)
+            name_layout.addWidget(QLabel(tr("lbl_from_path")))
+        form_layout.addRow(tr("lbl_project_name"), name_row)
 
         self.alias_input = QLineEdit()
-        self.alias_input.setPlaceholderText("可选，用于界面显示")
-        form_layout.addRow("别名", self.alias_input)
+        self.alias_input.setPlaceholderText(tr("ph_alias"))
+        form_layout.addRow(tr("lbl_alias"), self.alias_input)
 
         path_layout = QHBoxLayout()
         self.path_input = QLineEdit()
-        self.path_input.setPlaceholderText("必填，选择项目根目录")
-        self.path_btn = QPushButton("浏览...")
+        self.path_input.setPlaceholderText(tr("ph_path"))
+        self.path_btn = QPushButton(tr("btn_browse"))
         self.path_btn.clicked.connect(self.select_project_path)
         path_layout.addWidget(self.path_input)
         path_layout.addWidget(self.path_btn)
         if is_edit:
             self.path_input.setEnabled(False)
             self.path_btn.setEnabled(False)
-        form_layout.addRow("项目路径 *", path_layout)
+        form_layout.addRow(tr("lbl_project_path"), path_layout)
 
         layout.addLayout(form_layout)
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        cancel_btn = QPushButton("取消")
+        cancel_btn = QPushButton(tr("btn_cancel"))
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
 
-        next_btn = QPushButton("下一步: 配置规则" if not is_edit else "保存")
+        next_btn = QPushButton(tr("btn_save") if is_edit else tr("btn_next"))
         next_btn.setObjectName("primaryBtn")
-        next_btn.clicked.connect(self.on_next if not is_edit else self.on_save)
+        next_btn.clicked.connect(self.on_save if is_edit else self.on_next)
         btn_layout.addWidget(next_btn)
 
         layout.addLayout(btn_layout)
@@ -82,14 +83,14 @@ class ProjectDialog(QDialog):
             self.project_path = self.project.get("projectPath", "")
 
     def select_project_path(self):
-        path = QFileDialog.getExistingDirectory(self, "选择项目路径")
+        path = QFileDialog.getExistingDirectory(self, tr("msg_select_project_path"))
         if path:
             existing_projects = self.storage.get_projects_using_project_path(path)
             if existing_projects:
                 project_names = ", ".join([p.get("name", "未命名") for p in existing_projects])
                 QMessageBox.warning(
-                    self, "路径已被使用",
-                    f"该路径已被以下项目使用：\n{project_names}\n\n请选择其他路径"
+                    self, tr("msg_path_used_title"),
+                    tr("msg_path_used", names=project_names)
                 )
                 return
             self.path_input.setText(path)
@@ -100,12 +101,12 @@ class ProjectDialog(QDialog):
     def validate(self):
         alias = self.alias_input.text().strip()
         if alias and self.storage.is_alias_exists(alias):
-            QMessageBox.warning(self, "校验失败", f"别名「{alias}」已被其他项目使用，请换一个")
+            QMessageBox.warning(self, tr("msg_validation_failed"), tr("msg_alias_exists", alias=alias))
             return False
 
         if self.project is None:
             if not self.project_path:
-                QMessageBox.warning(self, "校验失败", "请选择项目路径")
+                QMessageBox.warning(self, tr("msg_validation_failed"), tr("msg_select_path"))
                 return False
 
         return True
@@ -143,7 +144,7 @@ class RuleDialog(QDialog):
 
     def init_ui(self):
         is_edit = self.rule is not None
-        self.setWindowTitle("编辑规则" if is_edit else "新增脱敏规则")
+        self.setWindowTitle(tr("dlg_edit_rule") if is_edit else tr("dlg_add_rule"))
         self.setMinimumWidth(500)
 
         layout = QVBoxLayout(self)
@@ -159,59 +160,38 @@ class RuleDialog(QDialog):
             rb.clicked.connect(lambda checked, t=ft: self.on_type_changed(t))
             type_layout.addWidget(rb)
             self.type_buttons[ft] = rb
-        form_layout.addRow("文件类型 *", type_layout)
+        form_layout.addRow(tr("lbl_file_type"), type_layout)
 
         self.file_match_input = QLineEdit()
-        self.file_match_input.setPlaceholderText("例如: application*.yml 或 application*.yml;bootstrap*.yml")
-        form_layout.addRow("文件匹配 *", self.file_match_input)
+        self.file_match_input.setPlaceholderText(tr("ph_file_match"))
+        form_layout.addRow(tr("lbl_file_match"), self.file_match_input)
 
         self.field_path_input = QLineEdit()
-        self.field_path_input.setPlaceholderText("根据文件类型填写对应格式")
-        form_layout.addRow("字段路径 *", self.field_path_input)
+        self.field_path_input.setPlaceholderText(tr("ph_field_path"))
+        form_layout.addRow(tr("lbl_field_path"), self.field_path_input)
 
-        self.enabled_checkbox = QCheckBox("启用此规则")
+        self.enabled_checkbox = QCheckBox(tr("chk_enable_rule"))
         self.enabled_checkbox.setChecked(True)
-        form_layout.addRow("状态", self.enabled_checkbox)
+        form_layout.addRow(tr("lbl_status"), self.enabled_checkbox)
 
         layout.addLayout(form_layout)
 
-        self.hint_group = QGroupBox("格式说明")
+        self.hint_group = QGroupBox(tr("grp_format_hint"))
         hint_layout = QVBoxLayout()
 
-        file_match_hint = QLabel(
-            "【文件匹配】\n"
-            "  • 支持通配符 * 匹配文件名\n"
-            "  • 可用分号 ; 分隔多个匹配模式（或关系）\n"
-            "  • 示例: application*.yml;bootstrap*.yml\n"
-            "  • 表示匹配 application*.yml 或 bootstrap*.yml"
-        )
+        file_match_hint = QLabel(tr("hint_file_match"))
         file_match_hint.setWordWrap(True)
         hint_layout.addWidget(file_match_hint)
 
-        yml_hint = QLabel(
-            "【yml/yaml 字段路径】\n"
-            "  • 完整路径: spring.datasource.password\n"
-            "  • 通配符 * : spring.datasource.*.password (精确深度匹配一级)\n"
-            "  • 通配符 ** : spring.datasource.**.password (匹配任意层级)"
-        )
+        yml_hint = QLabel(tr("hint_yml"))
         yml_hint.setWordWrap(True)
         hint_layout.addWidget(yml_hint)
 
-        env_hint = QLabel(
-            "【env 字段路径】\n"
-            "  • 直接写 KEY: DB_PASSWORD\n"
-            "  • 前缀匹配: DB_* (匹配所有以 DB_ 开头)\n"
-            "  • 后缀匹配: *_PASSWORD"
-        )
+        env_hint = QLabel(tr("hint_env"))
         env_hint.setWordWrap(True)
         hint_layout.addWidget(env_hint)
 
-        json_hint = QLabel(
-            "【json 字段路径 (JSONPath)】\n"
-            "  • 完整路径: $.database.password\n"
-            "  • 递归匹配: $..password (匹配任意位置的 password)\n"
-            "  • 通配符: $.database.*.password"
-        )
+        json_hint = QLabel(tr("hint_json"))
         json_hint.setWordWrap(True)
         hint_layout.addWidget(json_hint)
 
@@ -220,11 +200,11 @@ class RuleDialog(QDialog):
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        cancel_btn = QPushButton("取消")
+        cancel_btn = QPushButton(tr("btn_cancel"))
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
 
-        ok_btn = QPushButton("确定")
+        ok_btn = QPushButton(tr("btn_ok"))
         ok_btn.setObjectName("primaryBtn")
         ok_btn.clicked.connect(self.on_ok)
         btn_layout.addWidget(ok_btn)
@@ -251,10 +231,10 @@ class RuleDialog(QDialog):
         field_path = self.field_path_input.text().strip()
 
         if not file_match:
-            QMessageBox.warning(self, "校验失败", "请填写文件匹配")
+            QMessageBox.warning(self, tr("msg_validation_failed"), tr("msg_fill_file_match"))
             return
         if not field_path:
-            QMessageBox.warning(self, "校验失败", "请填写字段路径")
+            QMessageBox.warning(self, tr("msg_validation_failed"), tr("msg_fill_field_path"))
             return
 
         self.rule = {
@@ -282,57 +262,59 @@ class ProjectEditDialog(QDialog):
         self.check_desensitized_status()
 
     def init_ui(self):
-        self.setWindowTitle(f"编辑项目: {self.project.get('name', '')} - {self.project.get('alias', '')}")
+        self.setWindowTitle(tr("dlg_edit_project_title", 
+            name=self.project.get('name', ''), 
+            alias=self.project.get('alias', '')))
         self.setMinimumWidth(800)
         self.setMinimumHeight(600)
 
         layout = QVBoxLayout(self)
 
-        info_group = QGroupBox("基本信息")
+        info_group = QGroupBox(tr("grp_basic_info"))
         info_layout = QFormLayout()
 
         self.name_label = QLabel(self.project.get("name", ""))
-        info_layout.addRow("项目名称", self.name_label)
+        info_layout.addRow(tr("lbl_project_name"), self.name_label)
 
         self.alias_input = QLineEdit(self.project.get("alias", ""))
-        info_layout.addRow("别名", self.alias_input)
+        info_layout.addRow(tr("lbl_alias"), self.alias_input)
 
         path_layout = QHBoxLayout()
         self.path_label = QLabel()
         self.path_label.setText(self.project.get("projectPath", ""))
         self.path_label.setStyleSheet("QLabel { color: #666; }")
         self.path_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        open_path_btn = QPushButton("打开文件夹")
+        open_path_btn = QPushButton(tr("btn_open_folder"))
         open_path_btn.setFixedSize(open_path_btn.sizeHint().width() + 20, open_path_btn.sizeHint().height())
         open_path_btn.clicked.connect(lambda: self.open_in_explorer(self.project.get("projectPath", "")))
-        change_path_btn = QPushButton("更改路径")
+        change_path_btn = QPushButton(tr("btn_change_path"))
         change_path_btn.setFixedSize(change_path_btn.sizeHint().width() + 20, change_path_btn.sizeHint().height())
         change_path_btn.clicked.connect(lambda: self.change_project_path())
         path_layout.addWidget(self.path_label)
         path_layout.addWidget(open_path_btn)
         path_layout.addWidget(change_path_btn)
-        info_layout.addRow("项目路径", path_layout)
+        info_layout.addRow(tr("lbl_project_path_val"), path_layout)
 
         secret_layout = QHBoxLayout()
         self.secret_label = QLabel()
         self.secret_label.setText(self.project.get("secretPath", ""))
         self.secret_label.setStyleSheet("QLabel { color: #666; }")
         self.secret_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        open_secret_btn = QPushButton("打开文件夹")
+        open_secret_btn = QPushButton(tr("btn_open_folder"))
         open_secret_btn.setFixedSize(open_secret_btn.sizeHint().width() + 20, open_secret_btn.sizeHint().height())
         open_secret_btn.clicked.connect(lambda: self.open_in_explorer(self.project.get("secretPath", "")))
-        change_secret_btn = QPushButton("更改路径")
+        change_secret_btn = QPushButton(tr("btn_change_path"))
         change_secret_btn.setFixedSize(change_secret_btn.sizeHint().width() + 20, change_secret_btn.sizeHint().height())
         change_secret_btn.clicked.connect(lambda: self.change_secret_path())
         secret_layout.addWidget(self.secret_label)
         secret_layout.addWidget(open_secret_btn)
         secret_layout.addWidget(change_secret_btn)
-        info_layout.addRow("敏感数据路径", secret_layout)
+        info_layout.addRow(tr("lbl_secret_path_val"), secret_layout)
 
         info_group.setLayout(info_layout)
         layout.addWidget(info_group)
 
-        rule_group = QGroupBox("脱敏规则配置")
+        rule_group = QGroupBox(tr("grp_rules_config"))
         rule_layout = QVBoxLayout()
 
         self.warning_label = QLabel()
@@ -344,13 +326,13 @@ class ProjectEditDialog(QDialog):
         rule_btn_widget = QWidget()
         rule_btn_layout = QHBoxLayout()
         rule_btn_layout.setContentsMargins(0, 0, 0, 0)
-        self.add_rule_btn = QPushButton("+ 新增规则")
+        self.add_rule_btn = QPushButton(tr("btn_add_rule"))
         self.add_rule_btn.clicked.connect(self.add_rule)
         rule_btn_layout.addWidget(self.add_rule_btn)
-        self.import_rule_btn = QPushButton("导入规则")
+        self.import_rule_btn = QPushButton(tr("btn_import_rules"))
         self.import_rule_btn.clicked.connect(self.import_rules)
         rule_btn_layout.addWidget(self.import_rule_btn)
-        self.export_rule_btn = QPushButton("导出选中规则")
+        self.export_rule_btn = QPushButton(tr("btn_export_selected"))
         self.export_rule_btn.clicked.connect(self.export_selected_rules)
         rule_btn_layout.addWidget(self.export_rule_btn)
         rule_btn_widget.setLayout(rule_btn_layout)
@@ -358,7 +340,10 @@ class ProjectEditDialog(QDialog):
 
         self.rule_table = QTableWidget()
         self.rule_table.setColumnCount(6)
-        self.rule_table.setHorizontalHeaderLabels(["选择？", "序号", "文件类型", "文件匹配", "字段路径", "状态"])
+        self.rule_table.setHorizontalHeaderLabels([
+            tr("tbl_col_select"), tr("tbl_col_seq"), tr("tbl_col_type"),
+            tr("tbl_col_match"), tr("tbl_col_field"), tr("tbl_col_status")
+        ])
         self.rule_table.verticalHeader().setVisible(False)
         self.rule_table.setShowGrid(False)
         self.rule_table.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -374,26 +359,26 @@ class ProjectEditDialog(QDialog):
         self.rule_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Interactive)
         self.rule_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.Stretch)
         self.rule_table.horizontalHeader().setSectionResizeMode(5, QHeaderView.Fixed)
-        self.rule_table.horizontalHeader().setToolTip("<b>多选操作：</b><br>Ctrl + 点击：选择多条不连续的规则<br>Shift + 点击：选择范围内多条规则<br>Ctrl + A：全选")
+        self.rule_table.horizontalHeader().setToolTip(tr("tooltip_multiselect"))
         self.rule_table.setStyleSheet("")
         self.rule_table.itemSelectionChanged.connect(self.on_selection_changed)
         rule_layout.addWidget(self.rule_table)
 
         btn_widget = QWidget()
         btn_layout = QHBoxLayout()
-        self.open_config_btn = QPushButton("打开配置文件")
+        self.open_config_btn = QPushButton(tr("btn_open_config"))
         self.open_config_btn.clicked.connect(self.open_config_file)
         btn_layout.addWidget(self.open_config_btn)
 
-        self.edit_rule_btn = QPushButton("编辑选中规则")
+        self.edit_rule_btn = QPushButton(tr("btn_edit_selected"))
         self.edit_rule_btn.clicked.connect(self.edit_selected_rule)
         btn_layout.addWidget(self.edit_rule_btn)
 
-        self.delete_rule_btn = QPushButton("删除选中规则")
+        self.delete_rule_btn = QPushButton(tr("btn_delete_selected"))
         self.delete_rule_btn.clicked.connect(self.delete_selected_rule)
         btn_layout.addWidget(self.delete_rule_btn)
 
-        self.toggle_rule_btn = QPushButton("启用/禁用选中规则")
+        self.toggle_rule_btn = QPushButton(tr("btn_toggle_selected"))
         self.toggle_rule_btn.clicked.connect(self.toggle_selected_rule)
         btn_layout.addWidget(self.toggle_rule_btn)
 
@@ -406,11 +391,11 @@ class ProjectEditDialog(QDialog):
         footer_btn_layout = QHBoxLayout()
         footer_btn_layout.addStretch()
 
-        cancel_btn = QPushButton("取消")
+        cancel_btn = QPushButton(tr("btn_cancel"))
         cancel_btn.clicked.connect(self.reject)
         footer_btn_layout.addWidget(cancel_btn)
 
-        save_btn = QPushButton("保存")
+        save_btn = QPushButton(tr("btn_save"))
         save_btn.setObjectName("primaryBtn")
         save_btn.clicked.connect(self.save)
         footer_btn_layout.addWidget(save_btn)
@@ -423,12 +408,12 @@ class ProjectEditDialog(QDialog):
             os.startfile(path)
 
     def change_project_path(self):
-        new_path = QFileDialog.getExistingDirectory(self, "选择新的项目路径")
+        new_path = QFileDialog.getExistingDirectory(self, tr("msg_select_new_path"))
         if not new_path:
             return
         reply = QMessageBox.question(
-            self, "确认更改",
-            "更改路径后，原路径下的文件不会被移动到新路径。\n\n是否继续？",
+            self, tr("msg_confirm_change_path_title"),
+            tr("msg_confirm_change_path"),
             QMessageBox.Yes | QMessageBox.No
         )
         if reply != QMessageBox.Yes:
@@ -436,15 +421,15 @@ class ProjectEditDialog(QDialog):
         self.project["projectPath"] = new_path
         self.storage.update_project(self.project["id"], self.project)
         self.path_label.setText(new_path)
-        QMessageBox.information(self, "成功", "项目路径已更改")
+        QMessageBox.information(self, tr("msg_success"), tr("msg_path_changed"))
 
     def change_secret_path(self):
-        new_path = QFileDialog.getExistingDirectory(self, "选择新的敏感数据路径")
+        new_path = QFileDialog.getExistingDirectory(self, tr("msg_select_new_secret_path"))
         if not new_path:
             return
         reply = QMessageBox.question(
-            self, "确认更改",
-            "更改路径后，原路径下的文件不会被移动到新路径。\n\n是否继续？",
+            self, tr("msg_confirm_change_path_title"),
+            tr("msg_confirm_change_path"),
             QMessageBox.Yes | QMessageBox.No
         )
         if reply != QMessageBox.Yes:
@@ -452,7 +437,7 @@ class ProjectEditDialog(QDialog):
         self.project["secretPath"] = new_path
         self.storage.update_project(self.project["id"], self.project)
         self.secret_label.setText(new_path)
-        QMessageBox.information(self, "成功", "敏感数据路径已更改")
+        QMessageBox.information(self, tr("msg_success"), tr("msg_secret_path_changed"))
 
     def load_rules(self):
         self.rules = self.storage.load_secret_config(self.project.get("secretPath", ""))
@@ -507,7 +492,7 @@ class ProjectEditDialog(QDialog):
                 self.rule_table.setItem(i, 4, field_item)
 
                 status = rule.get("enabled", True)
-                status_item = QTableWidgetItem("启用" if status else "禁用")
+                status_item = QTableWidgetItem(tr("tbl_status_enabled") if status else tr("tbl_status_disabled"))
                 status_item.setTextAlignment(Qt.AlignCenter)
                 status_item.setFlags(status_item.flags() & ~Qt.ItemIsEditable)
                 self.rule_table.setItem(i, 5, status_item)
@@ -538,8 +523,8 @@ class ProjectEditDialog(QDialog):
     def check_config_file_opened(self):
         if self.config_file_opened:
             reply = QMessageBox.question(
-                self, "确认",
-                "配置文件可能正在被编辑，请确认已关闭配置文件。\n\n是否继续操作？",
+                self, tr("msg_confirm_file_opened_title"),
+                tr("msg_confirm_file_opened"),
                 QMessageBox.Yes | QMessageBox.No
             )
             if reply == QMessageBox.Yes:
@@ -556,7 +541,7 @@ class ProjectEditDialog(QDialog):
             rule = dialog.get_rule()
             for r in self.rules:
                 if r["fileType"] == rule["fileType"] and r["fileMatch"] == rule["fileMatch"] and r["fieldPath"] == rule["fieldPath"]:
-                    QMessageBox.warning(self, "重复规则", "该规则已存在")
+                    QMessageBox.warning(self, tr("msg_info"), tr("msg_duplicate_rule"))
                     return
             self.rules.append(rule)
             self.update_rule_table()
@@ -565,20 +550,20 @@ class ProjectEditDialog(QDialog):
         if self.check_config_file_opened():
             return
         if not self.selected_rule_indices:
-            QMessageBox.warning(self, "提示", "请先选择要导出的规则")
+            QMessageBox.warning(self, tr("msg_info"), tr("msg_select_rule_export"))
             return
 
         count = len(self.selected_rule_indices)
         reply = QMessageBox.question(
-            self, "确认导出",
-            f"确定要导出选中的 {count} 条规则吗？",
+            self, tr("msg_confirm_export_title"),
+            tr("msg_confirm_export", count=count),
             QMessageBox.Yes | QMessageBox.No
         )
         if reply != QMessageBox.Yes:
             return
 
         file_path, _ = QFileDialog.getSaveFileName(
-            self, "导出规则", "", "CSV Files (*.csv)"
+            self, tr("btn_export_selected"), "", "CSV Files (*.csv)"
         )
         if not file_path:
             return
@@ -596,15 +581,15 @@ class ProjectEditDialog(QDialog):
                         rule.get("fieldPath", ""),
                         rule.get("enabled", True)
                     ])
-            QMessageBox.information(self, "导出成功", f"已导出 {count} 条规则到：\n{file_path}")
+            QMessageBox.information(self, tr("msg_success"), tr("msg_export_success", count=count, path=file_path))
         except Exception as e:
-            QMessageBox.warning(self, "导出失败", f"导出失败：{str(e)}")
+            QMessageBox.warning(self, tr("msg_error"), tr("msg_export_failed", error=str(e)))
 
     def import_rules(self):
         if self.check_config_file_opened():
             return
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "导入规则", "", "CSV Files (*.csv)"
+            self, tr("btn_import_rules"), "", "CSV Files (*.csv)"
         )
         if not file_path:
             return
@@ -615,7 +600,7 @@ class ProjectEditDialog(QDialog):
                 reader = csv.reader(f)
                 header = next(reader)
                 if header != ["fileType", "fileMatch", "fieldPath", "enabled"]:
-                    QMessageBox.warning(self, "导入失败", "CSV格式不正确")
+                    QMessageBox.warning(self, tr("msg_error"), tr("msg_import_wrong_format"))
                     return
 
                 imported_count = 0
@@ -641,16 +626,16 @@ class ProjectEditDialog(QDialog):
                         imported_count += 1
 
                 self.update_rule_table()
-                msg = f"导入完成！\n新增：{imported_count} 条\n跳过（重复）：{skipped_count} 条"
-                QMessageBox.information(self, "导入成功", msg)
+                msg = tr("msg_import_success", imported=imported_count, skipped=skipped_count)
+                QMessageBox.information(self, tr("msg_success"), msg)
         except Exception as e:
-            QMessageBox.warning(self, "导入失败", f"导入失败：{str(e)}")
+            QMessageBox.warning(self, tr("msg_error"), tr("msg_import_failed", error=str(e)))
 
     def edit_selected_rule(self):
         if self.check_config_file_opened():
             return
         if len(self.selected_rule_indices) != 1:
-            QMessageBox.warning(self, "提示", "请选择一条规则进行编辑")
+            QMessageBox.warning(self, tr("msg_info"), tr("msg_select_one_rule"))
             return
 
         index = self.selected_rule_indices[0]
@@ -665,12 +650,12 @@ class ProjectEditDialog(QDialog):
         if self.check_config_file_opened():
             return
         if not self.selected_rule_indices:
-            QMessageBox.warning(self, "提示", "请先选择要删除的规则")
+            QMessageBox.warning(self, tr("msg_info"), tr("msg_select_to_delete"))
             return
 
         reply = QMessageBox.question(
-            self, "确认删除",
-            f"确定要删除选中的 {len(self.selected_rule_indices)} 条规则吗？",
+            self, tr("msg_confirm_delete_title"),
+            tr("msg_confirm_delete_rules", count=len(self.selected_rule_indices)),
             QMessageBox.Yes | QMessageBox.No
         )
         if reply != QMessageBox.Yes:
@@ -690,7 +675,7 @@ class ProjectEditDialog(QDialog):
         if self.check_config_file_opened():
             return
         if not self.selected_rule_indices:
-            QMessageBox.warning(self, "提示", "请先选择要切换状态的规则")
+            QMessageBox.warning(self, tr("msg_info"), tr("msg_select_to_toggle"))
             return
 
         for index in self.selected_rule_indices:
@@ -706,8 +691,8 @@ class ProjectEditDialog(QDialog):
 
     def save(self):
         reply = QMessageBox.question(
-            self, "确认保存",
-            "确定要保存规则吗？",
+            self, tr("msg_confirm_save_title"),
+            tr("msg_confirm_save"),
             QMessageBox.Yes | QMessageBox.No
         )
         if reply != QMessageBox.Yes:
@@ -715,14 +700,14 @@ class ProjectEditDialog(QDialog):
 
         config_file = Path(self.project.get("secretPath", "")) / "secret_config.csv"
         if self.storage.is_file_locked(config_file):
-            QMessageBox.warning(self, "文件被占用", "secret_config.csv 文件正在被其他程序打开，请先关闭该文件后再保存。")
+            QMessageBox.warning(self, tr("msg_error"), tr("msg_file_locked_config"))
             return
 
         self.storage.save_secret_config(self.project.get("secretPath", ""), self.rules)
         alias = self.alias_input.text().strip()
         if alias:
             if alias != self.project.get("alias") and self.storage.is_alias_exists(alias, exclude_project_id=self.project.get("id")):
-                QMessageBox.warning(self, "校验失败", f"别名「{alias}」已被其他项目使用，请换一个")
+                QMessageBox.warning(self, tr("msg_validation_failed"), tr("msg_alias_exists", alias=alias))
                 return
             self.project["alias"] = alias
             self.storage.update_project(self.project["id"], {"alias": alias})
@@ -737,7 +722,7 @@ class ProjectEditDialog(QDialog):
         self.is_desensitized = self._has_placeholder_in_project(project_path)
         
         if self.is_desensitized:
-            self.warning_label.setText("⚠ 项目已脱敏，请先恢复后再修改脱敏规则！")
+            self.warning_label.setText(tr("msg_warning_desensitized"))
             self.warning_label.show()
             
             self.add_rule_btn.setEnabled(False)
@@ -775,54 +760,84 @@ class MainWindow(QWidget):
         self.load_projects()
 
     def init_ui(self):
-        self.setWindowTitle("MultiMask - YAML, ENV, JSON. One rule to mask them all.")
+        self.setWindowTitle(tr("window_title"))
         self.setMinimumWidth(900)
         self.setMinimumHeight(500)
 
-        layout = QVBoxLayout(self)
+        self._main_layout = QVBoxLayout(self)
 
         header_layout = QHBoxLayout()
-        title = QLabel("项目列表")
-        title.setFont(QFont("Microsoft YaHei", 16, QFont.Bold))
-        header_layout.addWidget(title)
+        self._title_label = QLabel(tr("title_project_list"))
+        self._title_label.setFont(QFont("Microsoft YaHei", 16, QFont.Bold))
+        header_layout.addWidget(self._title_label)
         header_layout.addStretch()
 
-        add_btn = QPushButton("+ 新增项目")
-        add_btn.setObjectName("primaryBtn")
-        add_btn.clicked.connect(self.add_project)
-        header_layout.addWidget(add_btn)
+        self._add_btn = QPushButton(tr("btn_add_project"))
+        self._add_btn.setObjectName("primaryBtn")
+        self._add_btn.clicked.connect(self.add_project)
+        header_layout.addWidget(self._add_btn)
 
-        mcp_btn = QPushButton("📋 MCP配置")
-        mcp_btn.clicked.connect(self.copy_mcp_config)
-        header_layout.addWidget(mcp_btn)
+        self._mcp_btn = QPushButton(tr("btn_mcp_config"))
+        self._mcp_btn.clicked.connect(self.copy_mcp_config)
+        header_layout.addWidget(self._mcp_btn)
 
-        move_up_btn = QPushButton("↑ 上移")
-        move_up_btn.clicked.connect(self.move_up_project)
-        header_layout.addWidget(move_up_btn)
+        self._move_up_btn = QPushButton(tr("btn_move_up"))
+        self._move_up_btn.clicked.connect(self.move_up_project)
+        header_layout.addWidget(self._move_up_btn)
 
-        move_down_btn = QPushButton("↓ 下移")
-        move_down_btn.clicked.connect(self.move_down_project)
-        header_layout.addWidget(move_down_btn)
+        self._move_down_btn = QPushButton(tr("btn_move_down"))
+        self._move_down_btn.clicked.connect(self.move_down_project)
+        header_layout.addWidget(self._move_down_btn)
 
-        layout.addLayout(header_layout)
+        self._main_layout.addLayout(header_layout)
 
-        self.table = QTableWidget()
-        self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["序号", "项目名称", "别名", "操作"])
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
-        self.table.setColumnWidth(3, 400)
-        self.table.verticalHeader().setVisible(False)
-        self.table.setShowGrid(False)
-        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.table.setFocusPolicy(Qt.NoFocus)
-        self.table.setStyleSheet("")
-        self.table.itemClicked.connect(self.on_project_row_clicked)
-        layout.addWidget(self.table)
+        self._table = QTableWidget()
+        self._table.setColumnCount(4)
+        self._table.setHorizontalHeaderLabels([
+            tr("table_col_seq"), tr("table_col_name"),
+            tr("table_col_alias"), tr("table_col_actions")
+        ])
+        self._table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self._table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self._table.setColumnWidth(3, 400)
+        self._table.verticalHeader().setVisible(False)
+        self._table.setShowGrid(False)
+        self._table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self._table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self._table.setFocusPolicy(Qt.NoFocus)
+        self._table.setStyleSheet("")
+        self._table.itemClicked.connect(self.on_project_row_clicked)
+        self._main_layout.addWidget(self._table)
 
-        self.status_label = QLabel("状态栏: 共 0 个项目")
-        layout.addWidget(self.status_label)
+        bottom_layout = QHBoxLayout()
+        self._status_label = QLabel()
+        bottom_layout.addWidget(self._status_label)
+        bottom_layout.addStretch()
+
+        self._lang_btn = QPushButton(tr("btn_lang_toggle"))
+        self._lang_btn.setObjectName("langToggle")
+        self._lang_btn.clicked.connect(self._toggle_language)
+        bottom_layout.addWidget(self._lang_btn)
+
+        self._main_layout.addLayout(bottom_layout)
+
+    def _toggle_language(self):
+        toggle_lang()
+        self._refresh_lang_ui()
+
+    def _refresh_lang_ui(self):
+        self.setWindowTitle(tr("window_title"))
+        self._title_label.setText(tr("title_project_list"))
+        self._add_btn.setText(tr("btn_add_project"))
+        self._mcp_btn.setText(tr("btn_mcp_config"))
+        self._move_up_btn.setText(tr("btn_move_up"))
+        self._move_down_btn.setText(tr("btn_move_down"))
+        self._table.setHorizontalHeaderLabels([
+            tr("table_col_seq"), tr("table_col_name"),
+            tr("table_col_alias"), tr("table_col_actions")
+        ])
+        self._lang_btn.setText(tr("btn_lang_toggle"))
+        self.update_table()
 
     def load_projects(self):
         self.projects = self.storage.get_projects()
@@ -853,33 +868,33 @@ class MainWindow(QWidget):
         self.update_table()
 
     def update_table(self):
-        self.table.setRowCount(len(self.projects))
+        self._table.setRowCount(len(self.projects))
         for i, project in enumerate(self.projects):
             seq_item = QTableWidgetItem(str(i + 1))
             seq_item.setTextAlignment(Qt.AlignCenter)
             seq_item.setFlags(seq_item.flags() & ~Qt.ItemIsEditable)
-            self.table.setItem(i, 0, seq_item)
+            self._table.setItem(i, 0, seq_item)
             
             name_item = QTableWidgetItem(project.get("name", ""))
             name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
-            self.table.setItem(i, 1, name_item)
+            self._table.setItem(i, 1, name_item)
             
             alias_item = QTableWidgetItem(project.get("alias", ""))
             alias_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
             alias_item.setFlags(alias_item.flags() & ~Qt.ItemIsEditable)
-            self.table.setItem(i, 2, alias_item)
+            self._table.setItem(i, 2, alias_item)
 
             btn_widget = QWidget()
             btn_layout = QHBoxLayout()
             btn_layout.setContentsMargins(2, 2, 2, 2)
 
-            desensitize_btn = QPushButton("脱敏")
+            desensitize_btn = QPushButton(tr("btn_desensitize"))
             desensitize_btn.clicked.connect(lambda checked, p=project: self.desensitize_project(p))
-            restore_btn = QPushButton("恢复")
+            restore_btn = QPushButton(tr("btn_restore"))
             restore_btn.clicked.connect(lambda checked, p=project: self.restore_project(p))
-            edit_btn = QPushButton("编辑")
+            edit_btn = QPushButton(tr("btn_edit"))
             edit_btn.clicked.connect(lambda checked, p=project: self.edit_project(p))
-            delete_btn = QPushButton("删除")
+            delete_btn = QPushButton(tr("btn_delete"))
             delete_btn.clicked.connect(lambda checked, p=project: self.delete_project(p))
 
             for btn in [desensitize_btn, restore_btn, edit_btn, delete_btn]:
@@ -888,9 +903,9 @@ class MainWindow(QWidget):
                 btn_layout.addWidget(btn)
 
             btn_widget.setLayout(btn_layout)
-            self.table.setCellWidget(i, 3, btn_widget)
+            self._table.setCellWidget(i, 3, btn_widget)
 
-        self.status_label.setText(f"状态栏: 共 {len(self.projects)} 个项目")
+        self._status_label.setText(tr("status_projects", count=len(self.projects)))
 
     def add_project(self):
         dialog = ProjectDialog(self.storage, self)
@@ -921,30 +936,30 @@ class MainWindow(QWidget):
         secret_path = project.get("secretPath", "")
 
         if not Path(project_path).exists():
-            QMessageBox.warning(self, "错误", f"项目路径不存在: {project_path}")
+            QMessageBox.warning(self, tr("msg_error"), tr("msg_path_not_exist", path=project_path))
             return
 
         rules = self.storage.load_secret_config(secret_path)
         if not rules:
-            QMessageBox.warning(self, "提示", "请先配置脱敏规则")
+            QMessageBox.warning(self, tr("msg_info"), tr("msg_no_rules"))
             return
 
         enabled_rules = [r for r in rules if r.get("enabled", True)]
         if not enabled_rules:
-            QMessageBox.warning(self, "提示", "没有启用的脱敏规则")
+            QMessageBox.warning(self, tr("msg_info"), tr("msg_no_enabled_rules"))
             return
 
         self.storage.ensure_secret_path(secret_path)
 
         secret_file = Path(secret_path) / "secret.csv"
         if self.storage.is_file_locked(secret_file):
-            QMessageBox.warning(self, "文件被占用", "secret.csv 文件正在被其他程序打开，请先关闭该文件后再脱敏。")
+            QMessageBox.warning(self, tr("msg_error"), tr("msg_file_locked_desensitize"))
             return
 
         matched_files = self.engine.scan_files(project_path, enabled_rules)
 
         if not matched_files:
-            QMessageBox.information(self, "提示", "未找到匹配的文件")
+            QMessageBox.information(self, tr("msg_info"), tr("msg_no_match"))
             return
 
         saved_entries = set()
@@ -990,9 +1005,9 @@ class MainWindow(QWidget):
                         saved_entries.add((rel_path, change["fieldPath"]))
 
         if saved_entries:
-            QMessageBox.information(self, "脱敏成功", "脱敏完成！")
+            QMessageBox.information(self, tr("msg_desensitize_success"), tr("msg_desensitize_done"))
         else:
-            QMessageBox.information(self, "提示", "没有需要脱敏的字段")
+            QMessageBox.information(self, tr("msg_info"), tr("msg_no_field"))
 
         self.load_projects()
 
@@ -1002,12 +1017,12 @@ class MainWindow(QWidget):
 
         secrets = self.storage.load_secrets(secret_path)
         if not secrets:
-            QMessageBox.information(self, "提示", "没有可恢复的数据")
+            QMessageBox.information(self, tr("msg_info"), tr("msg_no_restore_data"))
             return
 
         secret_file = Path(secret_path) / "secret.csv"
         if self.storage.is_file_locked(secret_file):
-            QMessageBox.warning(self, "文件被占用", "secret.csv 文件正在被其他程序打开，请先关闭该文件后再恢复。")
+            QMessageBox.warning(self, tr("msg_error"), tr("msg_file_locked_restore"))
             return
 
         rules = self.storage.load_secret_config(secret_path)
@@ -1060,9 +1075,9 @@ class MainWindow(QWidget):
 
         if restored_count > 0:
             self.storage.clear_secrets(secret_path)
-            QMessageBox.information(self, "恢复成功", "恢复完成！")
+            QMessageBox.information(self, tr("msg_restore_success"), tr("msg_restore_done"))
         else:
-            QMessageBox.information(self, "提示", "配置文件未脱敏，无需恢复")
+            QMessageBox.information(self, tr("msg_info"), tr("msg_not_desensitized"))
 
     def open_secret_path(self, project):
         secret_path = project.get("secretPath", "")
@@ -1075,19 +1090,15 @@ class MainWindow(QWidget):
         display_name = f"{project_name} - {alias}" if alias else project_name
 
         reply = QMessageBox.question(
-            self, "确认删除",
-            f"确定要删除项目「{display_name}」的配置吗？\n\n"
-            f"此操作仅删除项目配置，不会删除：\n"
-            f"• 项目文件\n"
-            f"• 敏感数据文件\n"
-            f"• 备份文件",
+            self, tr("msg_confirm_delete_title"),
+            tr("msg_confirm_delete_text", name=display_name),
             QMessageBox.Yes | QMessageBox.No
         )
 
         if reply == QMessageBox.Yes:
             self.storage.delete_project(project["id"])
             self.load_projects()
-            QMessageBox.information(self, "删除成功", "项目配置已删除")
+            QMessageBox.information(self, tr("msg_delete_success"), tr("msg_delete_success_text"))
 
     def _is_frozen(self):
         if getattr(sys, 'frozen', False):
@@ -1109,7 +1120,7 @@ class MainWindow(QWidget):
                     }
                 }
             }
-            mode_info = "打包模式（exe）"
+            mode_text = tr("msg_copied_text_exe")
         else:
             src_dir = str(Path(__file__).resolve().parent.parent)
             config = {
@@ -1121,13 +1132,8 @@ class MainWindow(QWidget):
                     }
                 }
             }
-            mode_info = "源码模式（python）"
+            mode_text = tr("msg_copied_text_py")
 
         text = json.dumps(config, ensure_ascii=False, indent=2)
         QApplication.clipboard().setText(text)
-        QMessageBox.information(self, "已复制",
-            f"MCP 配置文件已复制到剪贴板！\n\n"
-            f"当前模式：{mode_info}\n"
-            f"请在 AI 编辑器的 MCP 配置文件中粘贴使用。\n\n"
-            f"本工具目前只有一个实例，调用时通过 project_alias 参数指定操作哪个项目。\n"
-            f"可用别名可在项目列表中查看，也可直接询问 AI 助手。")
+        QMessageBox.information(self, tr("msg_copied_title"), mode_text)

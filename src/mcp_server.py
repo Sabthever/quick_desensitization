@@ -12,6 +12,7 @@ from mcp.types import Tool, TextContent
 
 from storage import Storage
 from desensitize_engine import DesensitizeEngine
+from i18n import tr
 
 
 class DesensitizationMCPServer:
@@ -28,12 +29,12 @@ class DesensitizationMCPServer:
 
     def _get_alias_schema(self):
         aliases = self._get_aliases()
-        schema = {"type": "string", "description": "项目别名"}
+        schema = {"type": "string", "description": tr("mcp_alias_schema")}
         if aliases:
             schema["enum"] = aliases
-            schema["description"] = f"项目别名，可选值: {', '.join(aliases)}"
+            schema["description"] = tr("mcp_alias_schema_has", aliases=", ".join(aliases))
         else:
-            schema["description"] = "项目别名，请先在脱敏小工具的界面中创建项目并设置别名"
+            schema["description"] = tr("mcp_alias_schema_help")
         return schema
 
     def _setup_handlers(self):
@@ -45,13 +46,13 @@ class DesensitizationMCPServer:
             file_type_schema = {
                 "type": "string",
                 "enum": ["yml", "env", "json"],
-                "description": "文件类型"
+                "description": tr("mcp_file_type_desc")
             }
 
             return [
                 Tool(
                     name="desensitize",
-                    description="对指定别名的项目执行脱敏操作，将所有配置规则匹配的敏感字段替换为占位符，原始值加密存储到敏感数据路径",
+                    description=tr("mcp_desc_desensitize"),
                     inputSchema={
                         "type": "object",
                         "properties": {
@@ -62,7 +63,7 @@ class DesensitizationMCPServer:
                 ),
                 Tool(
                     name="restore",
-                    description="对指定别名的项目执行恢复操作，将脱敏占位符替换回原始敏感数据",
+                    description=tr("mcp_desc_restore"),
                     inputSchema={
                         "type": "object",
                         "properties": {
@@ -73,7 +74,7 @@ class DesensitizationMCPServer:
                 ),
                 Tool(
                     name="list_projects",
-                    description="列出所有已配置的脱敏项目，包含项目名称、别名、路径等信息",
+                    description=tr("mcp_desc_list_projects"),
                     inputSchema={
                         "type": "object",
                         "properties": {}
@@ -81,7 +82,7 @@ class DesensitizationMCPServer:
                 ),
                 Tool(
                     name="get_project_rules",
-                    description="获取指定项目的所有脱敏规则列表，每条规则包含ID、文件类型、文件匹配、字段路径、启用状态",
+                    description=tr("mcp_desc_get_rules"),
                     inputSchema={
                         "type": "object",
                         "properties": {
@@ -92,74 +93,74 @@ class DesensitizationMCPServer:
                 ),
                 Tool(
                     name="add_project_rule",
-                    description="为指定项目添加一条脱敏规则",
+                    description=tr("mcp_desc_add_rule"),
                     inputSchema={
                         "type": "object",
                         "properties": {
                             "project_alias": dict(alias_schema),
                             "fileType": dict(file_type_schema),
-                            "fileMatch": {"type": "string", "description": "文件匹配模式，例如: application*.yml 或 application*.yml;bootstrap*.yml"},
-                            "fieldPath": {"type": "string", "description": "字段路径，根据文件类型填写对应格式"},
-                            "enabled": {"type": "boolean", "description": "是否启用，默认 true"}
+                            "fileMatch": {"type": "string", "description": tr("mcp_desc_file_match")},
+                            "fieldPath": {"type": "string", "description": tr("mcp_desc_field_path")},
+                            "enabled": {"type": "boolean", "description": tr("mcp_desc_enabled")}
                         },
                         "required": ["project_alias", "fileType", "fileMatch", "fieldPath"]
                     }
                 ),
                 Tool(
                     name="edit_project_rule",
-                    description="编辑指定项目中的一条脱敏规则，先用 get_project_rules 查看规则列表获取 ID",
+                    description=tr("mcp_desc_edit_rule"),
                     inputSchema={
                         "type": "object",
                         "properties": {
                             "project_alias": dict(alias_schema),
-                            "rule_id": {"type": "integer", "description": "规则ID（从 get_project_rules 获取的 id 字段）"},
+                            "rule_id": {"type": "integer", "description": tr("mcp_desc_rule_id")},
                             "fileType": dict(file_type_schema),
-                            "fileMatch": {"type": "string", "description": "文件匹配模式"},
-                            "fieldPath": {"type": "string", "description": "字段路径"},
-                            "enabled": {"type": "boolean", "description": "是否启用"}
+                            "fileMatch": {"type": "string", "description": tr("mcp_desc_file_match")},
+                            "fieldPath": {"type": "string", "description": tr("mcp_desc_field_path")},
+                            "enabled": {"type": "boolean", "description": tr("mcp_desc_enabled")}
                         },
                         "required": ["project_alias", "rule_id", "fileType", "fileMatch", "fieldPath", "enabled"]
                     }
                 ),
                 Tool(
                     name="delete_project_rule",
-                    description="删除指定项目中的一条脱敏规则，先用 get_project_rules 查看规则列表获取 ID",
+                    description=tr("mcp_desc_delete_rule"),
                     inputSchema={
                         "type": "object",
                         "properties": {
                             "project_alias": dict(alias_schema),
-                            "rule_id": {"type": "integer", "description": "规则ID（从 get_project_rules 获取的 id 字段）"}
+                            "rule_id": {"type": "integer", "description": tr("mcp_desc_rule_id")}
                         },
                         "required": ["project_alias", "rule_id"]
                     }
                 ),
                 Tool(
                     name="toggle_project_rule",
-                    description="启用或禁用指定项目中的一条脱敏规则，先用 get_project_rules 查看规则列表获取 ID",
+                    description=tr("mcp_desc_toggle_rule"),
                     inputSchema={
                         "type": "object",
                         "properties": {
                             "project_alias": dict(alias_schema),
-                            "rule_id": {"type": "integer", "description": "规则ID（从 get_project_rules 获取的 id 字段）"}
+                            "rule_id": {"type": "integer", "description": tr("mcp_desc_rule_id")}
                         },
                         "required": ["project_alias", "rule_id"]
                     }
                 ),
                 Tool(
                     name="add_project",
-                    description="新增一个脱敏项目，需要指定项目路径和别名，敏感数据路径会自动生成",
+                    description=tr("mcp_desc_add_project"),
                     inputSchema={
                         "type": "object",
                         "properties": {
-                            "project_path": {"type": "string", "description": "项目根目录的绝对路径"},
-                            "alias": {"type": "string", "description": "项目别名，需要唯一"}
+                            "project_path": {"type": "string", "description": tr("mcp_desc_project_path")},
+                            "alias": {"type": "string", "description": tr("mcp_desc_alias")}
                         },
                         "required": ["project_path", "alias"]
                     }
                 ),
                 Tool(
                     name="delete_project",
-                    description="删除指定项目的配置，注意：不会删除项目文件和数据，请打开脱敏小工具软件在界面中手动删除",
+                    description=tr("mcp_desc_delete_project"),
                     inputSchema={
                         "type": "object",
                         "properties": {
@@ -188,16 +189,16 @@ class DesensitizationMCPServer:
                 handler = handlers.get(name)
                 if handler:
                     return await handler(arguments)
-                return [TextContent(type="text", text=f"未知工具: {name}")]
+                return [TextContent(type="text", text=tr("mcp_unknown_tool", name=name))]
             except Exception as e:
-                return [TextContent(type="text", text=f"执行出错: {str(e)}")]
+                return [TextContent(type="text", text=tr("mcp_exec_error", error=str(e)))]
 
     def _get_project_by_alias_or_error(self, alias: str):
         projects = self.storage.get_projects()
         for p in projects:
             if p.get("alias") == alias:
                 return p
-        raise ValueError(f"未找到别名为「{alias}」的项目，请先在软件中创建项目并设置别名")
+        raise ValueError(tr("mcp_project_not_found", alias=alias))
 
     async def _handle_list_projects(self, args: dict):
         projects = self.storage.get_projects()
@@ -257,7 +258,7 @@ class DesensitizationMCPServer:
             if r["fileType"] == new_rule["fileType"] and r["fileMatch"] == new_rule["fileMatch"] and r["fieldPath"] == new_rule["fieldPath"]:
                 return [TextContent(type="text", text=json.dumps({
                     "success": False,
-                    "message": "该规则已存在，请勿重复添加"
+                    "message": tr("mcp_rule_exists")
                 }, ensure_ascii=False, indent=2))]
 
         rules.append(new_rule)
@@ -265,7 +266,7 @@ class DesensitizationMCPServer:
 
         return [TextContent(type="text", text=json.dumps({
             "success": True,
-            "message": f"规则添加成功，当前共 {len(rules)} 条规则",
+            "message": tr("mcp_rule_added", count=len(rules)),
             "rule": new_rule
         }, ensure_ascii=False, indent=2))]
 
@@ -278,7 +279,7 @@ class DesensitizationMCPServer:
         if rule_id < 0 or rule_id >= len(rules):
             return [TextContent(type="text", text=json.dumps({
                 "success": False,
-                "message": f"规则ID {rule_id} 无效，有效范围: 0 ~ {len(rules) - 1}"
+                "message": tr("mcp_rule_id_invalid", id=rule_id, min=0, max=len(rules) - 1)
             }, ensure_ascii=False, indent=2))]
 
         rules[rule_id] = {
@@ -291,7 +292,7 @@ class DesensitizationMCPServer:
 
         return [TextContent(type="text", text=json.dumps({
             "success": True,
-            "message": f"规则 {rule_id} 编辑成功",
+            "message": tr("mcp_rule_edited", id=rule_id),
             "rule": rules[rule_id]
         }, ensure_ascii=False, indent=2))]
 
@@ -304,7 +305,7 @@ class DesensitizationMCPServer:
         if rule_id < 0 or rule_id >= len(rules):
             return [TextContent(type="text", text=json.dumps({
                 "success": False,
-                "message": f"规则ID {rule_id} 无效，有效范围: 0 ~ {len(rules) - 1}"
+                "message": tr("mcp_rule_id_invalid", id=rule_id, min=0, max=len(rules) - 1)
             }, ensure_ascii=False, indent=2))]
 
         deleted_rule = rules.pop(rule_id)
@@ -312,7 +313,7 @@ class DesensitizationMCPServer:
 
         return [TextContent(type="text", text=json.dumps({
             "success": True,
-            "message": f"规则 {rule_id} 已删除，当前共 {len(rules)} 条规则",
+            "message": tr("mcp_rule_deleted", id=rule_id, count=len(rules)),
             "deleted_rule": deleted_rule
         }, ensure_ascii=False, indent=2))]
 
@@ -325,17 +326,17 @@ class DesensitizationMCPServer:
         if rule_id < 0 or rule_id >= len(rules):
             return [TextContent(type="text", text=json.dumps({
                 "success": False,
-                "message": f"规则ID {rule_id} 无效，有效范围: 0 ~ {len(rules) - 1}"
+                "message": tr("mcp_rule_id_invalid", id=rule_id, min=0, max=len(rules) - 1)
             }, ensure_ascii=False, indent=2))]
 
         current = rules[rule_id].get("enabled", True)
         rules[rule_id]["enabled"] = not current
         self.storage.save_secret_config(secret_path, rules)
 
-        status_text = "启用" if rules[rule_id]["enabled"] else "禁用"
+        status_text = tr("mcp_status_enabled") if rules[rule_id]["enabled"] else tr("mcp_status_disabled")
         return [TextContent(type="text", text=json.dumps({
             "success": True,
-            "message": f"规则 {rule_id} 已{status_text}",
+            "message": tr("mcp_rule_toggled", id=rule_id, status=status_text),
             "rule": rules[rule_id]
         }, ensure_ascii=False, indent=2))]
 
@@ -346,13 +347,13 @@ class DesensitizationMCPServer:
         if self.storage.is_alias_exists(alias):
             return [TextContent(type="text", text=json.dumps({
                 "success": False,
-                "message": f"别名「{alias}」已被其他项目使用，请换一个"
+                "message": tr("mcp_alias_in_use", alias=alias)
             }, ensure_ascii=False, indent=2))]
 
         if not Path(project_path).exists():
             return [TextContent(type="text", text=json.dumps({
                 "success": False,
-                "message": f"项目路径不存在: {project_path}"
+                "message": tr("mcp_path_not_exist", path=project_path)
             }, ensure_ascii=False, indent=2))]
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -375,7 +376,7 @@ class DesensitizationMCPServer:
 
         return [TextContent(type="text", text=json.dumps({
             "success": True,
-            "message": f"项目「{alias}」创建成功",
+            "message": tr("mcp_project_created", alias=alias),
             "project": {
                 "id": new_project["id"],
                 "name": project_name,
@@ -389,7 +390,7 @@ class DesensitizationMCPServer:
         alias = args["project_alias"]
         return [TextContent(type="text", text=json.dumps({
             "success": False,
-            "message": f"请在 MultiMask 软件界面中手动删除项目「{alias}」的配置。MCP 工具不支持自动删除，请打开软件后点击项目对应的「删除」按钮进行操作。"
+            "message": tr("mcp_delete_in_gui", alias=alias)
         }, ensure_ascii=False, indent=2))]
 
     async def _handle_desensitize(self, args: dict):
@@ -400,21 +401,21 @@ class DesensitizationMCPServer:
         if not Path(project_path).exists():
             return [TextContent(type="text", text=json.dumps({
                 "success": False,
-                "message": f"项目路径不存在: {project_path}"
+                "message": tr("mcp_path_not_exist", path=project_path)
             }, ensure_ascii=False, indent=2))]
 
         rules = self.storage.load_secret_config(secret_path)
         if not rules:
             return [TextContent(type="text", text=json.dumps({
                 "success": False,
-                "message": "请先配置脱敏规则"
+                "message": tr("mcp_no_rules")
             }, ensure_ascii=False, indent=2))]
 
         enabled_rules = [r for r in rules if r.get("enabled", True)]
         if not enabled_rules:
             return [TextContent(type="text", text=json.dumps({
                 "success": False,
-                "message": "没有启用的脱敏规则"
+                "message": tr("mcp_no_enabled_rules")
             }, ensure_ascii=False, indent=2))]
 
         self.storage.ensure_secret_path(secret_path)
@@ -423,7 +424,7 @@ class DesensitizationMCPServer:
         if not matched_files:
             return [TextContent(type="text", text=json.dumps({
                 "success": False,
-                "message": "未找到匹配的文件"
+                "message": tr("mcp_no_match")
             }, ensure_ascii=False, indent=2))]
 
         saved_entries = set()
@@ -477,7 +478,7 @@ class DesensitizationMCPServer:
 
         return [TextContent(type="text", text=json.dumps({
             "success": len(saved_entries) > 0,
-            "message": f"脱敏完成，共处理 {len(saved_entries)} 个字段" if saved_entries else "没有需要脱敏的字段",
+            "message": tr("mcp_desensitize_done", count=len(saved_entries)) if saved_entries else tr("mcp_no_field"),
             "project_alias": project.get("alias"),
             "project_name": project.get("name"),
             "processed_files": processed_files,
@@ -493,7 +494,7 @@ class DesensitizationMCPServer:
         if not secrets:
             return [TextContent(type="text", text=json.dumps({
                 "success": False,
-                "message": "没有可恢复的数据"
+                "message": tr("mcp_no_restore_data")
             }, ensure_ascii=False, indent=2))]
 
         rules = self.storage.load_secret_config(secret_path)
@@ -550,7 +551,7 @@ class DesensitizationMCPServer:
             self.storage.clear_secrets(secret_path)
             return [TextContent(type="text", text=json.dumps({
                 "success": True,
-                "message": f"恢复完成，共恢复 {restored_count} 个文件",
+                "message": tr("mcp_restore_done", count=restored_count),
                 "project_alias": project.get("alias"),
                 "project_name": project.get("name"),
                 "restored_files": restored_files
@@ -558,7 +559,7 @@ class DesensitizationMCPServer:
         else:
             return [TextContent(type="text", text=json.dumps({
                 "success": True,
-                "message": "配置文件未脱敏，无需恢复"
+                "message": tr("mcp_not_desensitized")
             }, ensure_ascii=False, indent=2))]
 
     def run(self):
